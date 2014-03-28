@@ -111,7 +111,7 @@ function initializePresentation(prefix) {
 }
 
 function centerSlides(slides) {
-	slides.each(function(s, slide) {
+	slides.filter('.vc').each(function(s, slide) {
 		centerSlide(slide)
 	})
 }
