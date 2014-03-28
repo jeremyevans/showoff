@@ -21,6 +21,7 @@ $(document).ready(function(){
 			}
 			return false;
 		}).next().hide();
+    postSlide();
 	});
 
   $("#minStop").hide();
