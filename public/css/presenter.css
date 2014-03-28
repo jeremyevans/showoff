@@ -223,10 +223,19 @@ img#disconnected {
 
   #notes {
     float: right;
-    width: 74%;
+    width: 100%;
+    padding-left: 25px;
     font-size: 1.5em;
-    overflow: auto;
+    overflow: none;
     height: 100%;
+    background-color: white;
+    display: block;
+    opacity: 0.9;
+    font-size: 1.3em;
+    height: 260px;
+    margin-top: -260px;
+    z-index: 1000;
+    position: relative;
   }
   #notes p,
   #notes h1,

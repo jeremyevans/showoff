@@ -319,15 +319,6 @@ class ShowOffUtils
     Hash[opts.map {|k, v| [k.to_sym, v]}] # keys must be symbols
   end
 
-  def self.showoff_markdown(dir = ".")
-    get_config_option(dir, "markdown", "redcarpet")
-  end
-
-  def self.showoff_renderer_options(dir = '.', default_options = {})
-    opts = get_config_option(dir, showoff_markdown(dir), default_options)
-    Hash[opts.map {|k, v| [k.to_sym, v]}] if opts    # keys must be symbols
-  end
-
   def self.get_config_option(dir, option, default = nil)
     index = File.join(dir, ShowOffUtils.presentation_config_file)
     if File.exists?(index)
@@ -405,46 +396,3 @@ class ShowOffUtils
   end
 end
 
-# Load the configuration for the markdown engine from the showoff.json
-# file
-module MarkdownConfig
-  def self.setup(dir_name)
-    # Load markdown configuration
-    case ShowOffUtils.showoff_markdown(dir_name)
-
-    when 'rdiscount'
-      Tilt.prefer Tilt::RDiscountTemplate, "markdown"
-
-    when 'maruku'
-      Tilt.prefer Tilt::MarukuTemplate, "markdown"
-      # Now check if we can go for latex mode
-      require 'maruku'
-      require 'maruku/ext/math'
-
-      # Load maruku options
-      opts = ShowOffUtils.showoff_renderer_options(dir_name,
-                                                   { :use_tex => false,
-                                                     :png_dir => 'images',
-                                                     :html_png_url => '/file/images/'})
-
-      if opts[:use_tex]
-        MaRuKu::Globals[:html_math_output_mathml] = false
-        MaRuKu::Globals[:html_math_engine] = 'none'
-        MaRuKu::Globals[:html_math_output_png] = true
-        MaRuKu::Globals[:html_png_engine] =  'blahtex'
-        MaRuKu::Globals[:html_png_dir] = opts[:png_dir]
-        MaRuKu::Globals[:html_png_url] = opts[:html_png_url]
-      end
-
-    when 'bluecloth'
-      Tilt.prefer Tilt::BlueClothTemplate, "markdown"
-
-    when 'kramdown'
-      Tilt.prefer Tilt::KramdownTemplate, "markdown"
-
-    else
-      Tilt.prefer Tilt::RedcarpetTemplate, "markdown"
-
-    end
-  end
-end

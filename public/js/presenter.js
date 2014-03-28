@@ -1,16 +1,10 @@
 // presenter js
 var slaveWindow = null;
+var slaveMode = false;
 
 var paceData = [];
 
 $(document).ready(function(){
-  // set up the presenter modes
-  mode = { track: false, follow: true, update: true, slave: false };
-
-  // attempt to open another window for the presentation if the mode defaults
-  // to enabling this. It does not by default, so this is likely a no-op.
-  openSlave();
-
   // the presenter window doesn't need the reload on resize bit
   $(window).unbind('resize');
 
@@ -24,15 +18,12 @@ $(document).ready(function(){
 				gotoSlide($(this).attr('rel'));
 				try { slaveWindow.gotoSlide($(this).attr('rel'), false) } catch (e) {}
 				postSlide();
-				update();
 			}
 			return false;
 		}).next().hide();
 	});
 
   $("#minStop").hide();
-  $("#startTimer").click(function() { toggleTimer() });
-  $("#stopTimer").click(function() { toggleTimer() });
 
   /* zoom slide to match preview size, then set up resize handler. */
   zoom();
@@ -47,9 +38,6 @@ $(document).ready(function(){
   $('#stats').tipsy({ html: true, width: 450, trigger: 'manual', gravity: 'ne', opacity: 0.9, offset: 5 });
   $('#downloads').tipsy({ html: true, width: 425, trigger: 'manual', gravity: 'ne', opacity: 0.9, offset: 5 });
 
-  $('#stats').click( function(e) {  popupLoader( $(this), '/stats', 'stats', e); });
-  $('#downloads').click( function(e) {  popupLoader( $(this), '/download', 'downloads', e); });
-
   $('#enableFollower').tipsy({ gravity: 'ne' });
   $('#enableRemote').tipsy();
   $('#zoomer').tipsy({ gravity: 'ne' });
@@ -62,61 +50,22 @@ $(document).ready(function(){
     bind('swipeleft', presNextStep).  // next
     bind('swiperight', presPrevStep); // prev
 
-  $('#remoteToggle').change( toggleFollower );
-  $('#followerToggle').change( toggleUpdater );
-
   $('#topbar #update').click( function(e) {
     e.preventDefault();
     $.get("/getpage", function(data) {
       gotoSlide(data);
     });
   });
-
-  setInterval(function() { updatePace() }, 1000);
-
-  // Tell the showoff server that we're a presenter
-  register();
 });
 
-function popupLoader(elem, page, id, event)
-{
-  var title = elem.attr('title');
-  event.preventDefault();
-
-  if(elem.attr('open') == 'true') {
-    elem.attr('open', false)
-    elem.tipsy("hide");
-  }
-  else {
-    $.get(page, function(data) {
-      var link = '<p class="newpage"><a href="' + page + '" target="_new">Open in new page...</a>';
-      var content = '<div id="' + id + '">' + $(data).find('#wrapper').html() + link + '</div>';
-
-      elem.attr('title', content);
-      elem.attr('open', true)
-      elem.tipsy("show");
-      setupStats();
-    });
-  }
-
-  return false;
-}
-
-function reportIssue() {
-  var slide  = $("span#slideFile").text();
-  var issues = $("span#issueUrl").text();
-  var link = issues + encodeURIComponent('Issue with slide: ' + slide);
-  window.open(link);
-}
-
 function toggleSlave() {
-  mode.slave = !mode.slave;
+  slaveMode = !slaveMode;
   openSlave();
 }
 
 function openSlave()
 {
-  if (mode.slave) {
+  if (slaveMode) {
     try {
       if(slaveWindow == null || typeof(slaveWindow) == 'undefined' || slaveWindow.closed){
           slaveWindow = window.open('/' + window.location.hash, 'toolbar');
@@ -128,7 +77,7 @@ function openSlave()
 
       // maintain the pointer back to the parent.
       slaveWindow.presenterView = window;
-      slaveWindow.mode = { track: false, slave: true, follow: false };
+      slaveWindow.slaveMode = true;
 
       $('#slaveWindow').addClass('enabled');
     }
@@ -150,49 +99,6 @@ function openSlave()
       console.log('Slave window failed to close properly.');
     }
   }
-}
-
-function askQuestion(question) {
-  $("#questions ul").prepend($('<li/>').text(question));
-}
-
-function paceFeedback(pace) {
-  var now = new Date();
-  switch(pace) {
-    case 'faster': paceData.push({time: now, pace: -1}); break; // too fast
-    case 'slower': paceData.push({time: now, pace:  1}); break; // too slow
-  }
-
-  updatePace();
-}
-
-function updatePace() {
-  // pace notices expire in a few minutes
-  cutoff     = 3 * 60 * 1000;
-  expiration = new Date().getTime() - cutoff;
-
-  scale = 10; // this should max out around 5 clicks in either direction
-  sum   = 50; // start in the middle
-
-  // Loops through and calculates a decaying average
-  for (var index = 0; index < paceData.length; index++) {
-    notice = paceData[index]
-
-    if(notice.time < expiration) {
-      paceData.splice( index, 1 );
-    }
-    else {
-      ratio = (notice.time - expiration) / cutoff;
-      sum  += (notice.pace * scale * ratio);
-    }
-  }
-
-  position = Math.max(Math.min(sum, 90), 10); // between 10 and 90
-  console.log("Updating pace: " + position);
-  $("#paceMarker").css({ left: position+"%" });
-
-  if(position > 75) { $("#paceFast").show() } else { $("#paceFast").hide() }
-  if(position < 25) { $("#paceSlow").show() } else { $("#paceSlow").hide() }
 }
 
 function zoom()
@@ -222,81 +128,23 @@ gotoSlide = function (slideNum)
     postSlide()
 }
 
-// override with an alternate implementation.
-// We need to do this before opening the websocket because the socket only
-// inherits cookies present at initialization time.
-reconnectControlChannel = function() {
-  $.ajax({
-    url: "presenter",
-    success: function() {
-      // In jQuery 1.4.2, this branch seems to be taken unconditionally. It doesn't
-      // matter though, as the disconnected() callback routes back here anyway.
-      console.log("Refreshing presenter cookie");
-      connectControlChannel();
-    },
-    error: function() {
-      console.log("Showoff server unavailable");
-      setTimeout(reconnectControlChannel(), 5000);
-    },
-  });
-}
-
-function update() {
-  if(mode.update) {
-    var slideName = $("#slideFile").text();
-    ws.send(JSON.stringify({ message: 'update', slide: slidenum, name: slideName}));
-  }
-}
-
-// Tell the showoff server that we're a presenter, giving the socket time to initialize
-function register() {
-  setTimeout( function() {
-    try {
-      ws.send(JSON.stringify({ message: 'register' }));
-    }
-    catch(e) {
-      console.log("Registration failed. Sleeping");
-      // try again, until the socket finally lets us register
-      register();
-    }
-  }, 5000);
-}
-
 function presPrevStep()
 {
     prevStep();
     try { slaveWindow.prevStep(false) } catch (e) {};
     postSlide();
-
-    update();
 }
 
 function presNextStep()
 {
-/*  // I don't know what the point of this bit was, but it's not needed.
-    // read the variables set by our spawner
-    incrCurr = slaveWindow.incrCurr
-    incrSteps = slaveWindow.incrSteps
-*/
 	nextStep();
 	try { slaveWindow.nextStep(false) } catch (e) {};
 	postSlide();
-
-	update();
 }
 
 function postSlide()
 {
 	if(currentSlide) {
-/*
-		try {
-		  // whuuuu?
-		  var notes = slaveWindow.getCurrentNotes()
-		}
-		catch(e) {
-		  var notes = getCurrentNotes()
-		}
-*/
     var notes = getCurrentNotes()
 		$('#notes').html(notes.html())
 
@@ -396,67 +244,6 @@ function keyDown(event)
 	return true
 }
 
-//* TIMER *//
-
-var timerSetUp = false;
-var timerRunning = false;
-var intervalRunning = false;
-var seconds = 0;
-var totalMinutes = 35;
-
-function toggleTimer()
-{
-  if (!timerRunning) {
-    timerRunning = true
-    totalMinutes = parseInt($("#timerMinutes").attr('value'))
-    $("#minStart").hide()
-    $("#minStop").show()
-    $("#timerInfo").text(timerStatus(0));
-    seconds = 0
-    if (!intervalRunning) {
-      intervalRunning = true
-      setInterval(function() {
-        if (!timerRunning) { return; }
-        seconds++;
-        $("#timerInfo").text(timerStatus(seconds));
-      }, 1000);  // fire every minute
-    }
-  } else {
-    seconds = 0
-    timerRunning = false
-    totalMinutes = 0
-    $("#timerInfo").text('')
-    $("#minStart").show()
-    $("#minStop").hide()
-  }
-}
-
-function timerStatus(seconds) {
-  var minutes = Math.round(seconds / 60);
-  var left = (totalMinutes - minutes);
-  var percent = Math.round((minutes / totalMinutes) * 100);
-  var progress = getSlidePercent() - percent;
-  setProgressColor(progress);
-  return minutes + '/' + left + ' - ' + percent + '%';
-}
-
-function setProgressColor(progress) {
-  ts = $('#timerSection')
-  ts.removeClass('tBlue')
-  ts.removeClass('tGreen')
-  ts.removeClass('tYellow')
-  ts.removeClass('tRed')
-  if(progress > 10) {
-    ts.addClass('tBlue')
-  } else if (progress > 0) {
-    ts.addClass('tGreen')
-  } else if (progress > -10) {
-    ts.addClass('tYellow')
-  } else {
-    ts.addClass('tRed')
-  }
-}
-
 var presSetCurrentStyle = setCurrentStyle;
 var setCurrentStyle = function(style, prop) {
   presSetCurrentStyle(style, false);
@@ -473,25 +260,3 @@ function mobile() {
             || navigator.userAgent.match(/Windows Phone/i)
   );
 }
-
-/********************
- Follower Code
- ********************/
-function toggleFollower()
-{
-  mode.follow = $("#remoteToggle").attr("checked");
-  getPosition();
-}
-
-function toggleUpdater()
-{
-  mode.update = $("#followerToggle").attr("checked");
-  update();
-}
-
-/*
-// redefine defaultMode
-defaultMode = function() {
-  return mobile() ? modeState.follow : modeState.passive;
-}
-*/

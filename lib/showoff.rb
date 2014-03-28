@@ -5,36 +5,20 @@ require 'nokogiri'
 require 'fileutils'
 require 'logger'
 require 'htmlentities'
-
-begin
-  require 'sinatra-websocket'
-  WEBSOCKET_SUPPORT = true
-rescue LoadError
-  $stderr.puts "WARN: websocket support disabled - install sinatra-websocket"
-  WEBSOCKET_SUPPORT = false
-end
+require 'maruku'
 
 here = File.expand_path(File.dirname(__FILE__))
 require "#{here}/showoff_utils"
 require "#{here}/commandline_parser"
 
 begin
-  require 'RMagick'
-rescue LoadError
-  $stderr.puts 'WARN: image sizing disabled - install rmagick'
-end
-
-begin
   require 'pdfkit'
 rescue LoadError
-  $stderr.puts 'WARN: pdf generation disabled - install pdfkit'
 end
 
 require 'tilt'
 
 class ShowOff < Sinatra::Application
-
-  attr_reader :cached_image_size
 
   # Set up application variables
 
@@ -45,7 +29,6 @@ class ShowOff < Sinatra::Application
   set :viewstats, "viewstats.json"
   set :feedback, "feedback.json"
 
-  set :server, 'thin' if WEBSOCKET_SUPPORT
   set :sockets, []
   set :presenters, []
 
@@ -102,7 +85,6 @@ class ShowOff < Sinatra::Application
 
     @logger.debug settings.pres_template
 
-    @cached_image_size = {}
     @logger.debug settings.pres_dir
     @pres_name = settings.pres_dir.split('/').pop
     require_ruby_files
@@ -110,9 +92,7 @@ class ShowOff < Sinatra::Application
     # Default asset path
     @asset_path = "./"
 
-
-    # Initialize Markdown Configuration
-    MarkdownConfig::setup(settings.pres_dir)
+    Tilt.prefer Tilt::MarukuTemplate, "markdown"
   end
 
   def self.pres_dir_current
@@ -180,9 +160,6 @@ class ShowOff < Sinatra::Application
       if settings.encoding and content.respond_to?(:force_encoding)
         content.force_encoding(settings.encoding)
       end
-      engine_options = ShowOffUtils.showoff_renderer_options(settings.pres_dir)
-      @logger.debug "renderer: #{Tilt[:markdown].name}"
-      @logger.debug "render options: #{engine_options.inspect}"
 
       # if there are no !SLIDE markers, then make every H1 define a new slide
       unless content =~ /^\<?!SLIDE/m
@@ -284,7 +261,7 @@ class ShowOff < Sinatra::Application
 
         # Apply the template to the slide and replace the key to generate the content of the slide
         sl = process_content_for_replacements(template.gsub(/~~~CONTENT~~~/, slide.text))
-        sl = Tilt[:markdown].new(nil, nil, engine_options) { sl }.render
+        sl = Tilt[:markdown].new(nil, nil, {}) { sl }.render
         sl = update_p_classes(sl)
         sl = process_content_for_section_tags(sl)
         sl = update_special_content(sl, @slide_count, name) # TODO: deprecated
@@ -401,8 +378,6 @@ class ShowOff < Sinatra::Application
       container = doc.css("p.#{mark}").first
       return unless container
 
-      @logger.warn "Special mark (#{mark}) is deprecated. Please replace with section tags. See the README for details."
-
       # only allow localhost to print the instructor guide
       if mark == 'instructor' and request.env['REMOTE_HOST'] != 'localhost'
         container.remove
@@ -446,30 +421,7 @@ class ShowOff < Sinatra::Application
         %(img src="#{@asset_path}image/#{path})
       slide.gsub(/img src=[\"\'](?!https?:\/\/)([^\/].*?)[\"\']/) do |s|
         img_path = File.join(path, $1)
-        w, h     = get_image_size(img_path)
-        src      = %(#{replacement_prefix}/#{$1}")
-        if w && h
-          src << %( width="#{w}" height="#{h}")
-        end
-        src
-      end
-    end
-
-    if defined?(Magick)
-      def get_image_size(path)
-        if !cached_image_size.key?(path)
-          img = Magick::Image.ping(path).first
-          # don't set a size for svgs so they can expand to fit their container
-          if img.mime_type == 'image/svg+xml'
-            cached_image_size[path] = [nil, nil]
-          else
-            cached_image_size[path] = [img.columns, img.rows]
-          end
-        end
-        cached_image_size[path]
-      end
-    else
-      def get_image_size(path)
+        %(#{replacement_prefix}/#{$1}")
       end
     end
 
@@ -849,119 +801,6 @@ class ShowOff < Sinatra::Application
         send_file full_path
     else
         raise Sinatra::NotFound
-    end
-  end
-
-  get '/websocket_support' do
-    WEBSOCKET_SUPPORT ? '1' : '0'
-  end
-
-  if WEBSOCKET_SUPPORT
-    get '/control' do
-      if !request.websocket?
-        raise Sinatra::NotFound
-      else
-        request.websocket do |ws|
-          ws.onopen do
-            ws.send( { 'current' => @@current[:number] }.to_json )
-            settings.sockets << ws
-
-            @logger.warn "Open sockets: #{settings.sockets.size}"
-          end
-          ws.onmessage do |data|
-            begin
-              control = JSON.parse(data)
-
-              @logger.warn "#{control.inspect}"
-
-              case control['message']
-              when 'update'
-                # websockets don't use the same auth standards
-                # we use a session cookie to identify the presenter
-                if valid_cookie()
-                  name  = control['name']
-                  slide = control['slide'].to_i
-
-                  # check to see if we need to enable a download link
-                  if @@downloads.has_key?(slide)
-                    @logger.debug "Enabling file download for slide #{name}"
-                    @@downloads[slide][0] = true
-                  end
-
-                  # update the current slide pointer
-                  @logger.debug "Updated current slide to #{name}"
-                  @@current = { :name => name, :number => slide }
-
-                  # schedule a notification for all clients
-                  EM.next_tick { settings.sockets.each{|s| s.send({ 'current' => @@current[:number] }.to_json) } }
-                end
-
-              when 'register'
-                # save a list of presenters
-                if valid_cookie()
-                  remote = request.env['REMOTE_HOST'] || request.env['REMOTE_ADDR']
-                  settings.presenters << ws
-                  @logger.warn "Registered new presenter: #{remote}"
-                end
-
-              when 'track'
-                remote = request.env['REMOTE_HOST'] || request.env['REMOTE_ADDR']
-                slide  = control['slide']
-                time   = control['time'].to_f
-
-                @logger.debug "Logged #{time} on slide #{slide} for #{remote}"
-
-                # a bucket for this slide
-                @@counter[slide] ||= Hash.new
-                # a bucket of slideviews for this address
-                @@counter[slide][remote] ||= Array.new
-                # and add this slide viewing to the bucket
-                @@counter[slide][remote] << { 'elapsed' => time, 'timestamp' => Time.now.to_i, 'presenter' => @@current[:name] }
-
-              when 'position'
-                ws.send( { 'current' => @@current[:number] }.to_json ) unless @@cookie.nil?
-
-              when 'pace', 'question'
-                # just forward to the presenter(s)
-                EM.next_tick { settings.presenters.each{|s| s.send(data) } }
-
-              when 'feedback'
-                filename = "#{settings.statsdir}/#{settings.feedback}"
-                slide    = control['slide']
-                rating   = control['rating']
-                feedback = control['feedback']
-
-                begin
-                  log = JSON.parse(File.read(filename))
-                rescue
-                  # do nothing
-                end
-
-                log        ||= Hash.new
-                log[slide] ||= Array.new
-                log[slide]  << { :rating => rating, :feedback => feedback }
-
-                if settings.verbose then
-                  File.write(filename, JSON.pretty_generate(log))
-                else
-                  File.write(filename, log.to_json)
-                end
-
-              else
-                @logger.warn "Unknown message <#{control['message']}> received."
-                @logger.warn control.inspect
-              end
-
-            rescue Exception => e
-              @logger.warn "Messaging error: #{e}"
-            end
-          end
-          ws.onclose do
-            @logger.warn("websocket closed")
-            settings.sockets.delete(ws)
-          end
-        end
-      end
     end
   end
 

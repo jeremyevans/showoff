@@ -121,18 +121,8 @@ command :serve do |c|
 
     host = options[:h] == '0.0.0.0' ? 'localhost' : options[:h]
     url  = "http://#{host}:#{options[:p].to_i}"
-    puts "
--------------------------
-
-Your ShowOff presentation is now starting up.
-
-To view it plainly, visit [ #{url} ]
-
-To run it from presenter view, go to: [ #{url}/presenter ]
-
--------------------------
-
-"
+    puts "View URL: #{url}"
+    puts "Presenter URL: #{url}/presenter"
     ShowOff.run!  :host      => options[:h],
                   :port      => options[:p].to_i,
                   :pres_file => options[:f],

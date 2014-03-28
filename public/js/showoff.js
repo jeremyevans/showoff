@@ -18,15 +18,12 @@ var gotoSlidenum = 0
 var shiftKeyActive = false
 var query
 var slideStartTime = new Date().getTime()
-var websocket_supported = false
 
 var questionPrompt = 'Ask a question...'
 var feedbackPrompt = 'Why?...'
 
 var loadSlidesBool
 var loadSlidesPrefix
-
-var mode = { track: true, follow: false };
 
 function setupPreso(load_slides, prefix) {
 	if (preso_started)
@@ -58,44 +55,10 @@ function setupPreso(load_slides, prefix) {
 		bind('swipeleft', swipeLeft).   // next
 		bind('swiperight', swipeRight); // prev
 
-  // give us the ability to disable tracking via url parameter
-  if(query.track == 'false') mode.track = false;
-
   // Make sure the slides always look right.
   // Better would be dynamic calculations, but this is enough for now.
   $(window).resize(function(){location.reload();});
-
-  $("#feedbackWrapper").hover(
-    function() {
-      $('#feedbackSidebar').show();
-      document.onkeydown = null;
-      document.onkeyup   = null;
-    },
-    function() {
-      $('#feedbackSidebar').hide();
-      document.onkeydown = keyDown;
-      document.onkeyup   = keyUp;
-    }
-  );
-
-  websocket_supported = ($.get('/websocket_support').response === '1')
-
-  if (websocket_supported) {
-    $("#paceSlower").click(function() { sendPace('slower'); });
-    $("#paceFaster").click(function() { sendPace('faster'); });
-    $("#askQuestion").click(function() { askQuestion( $("textarea#question").val()) });
-    $("#sendFeedback").click(function() {
-      sendFeedback($( "input:radio[name=rating]:checked" ).val(), $("textarea#feedback").val())
-    });
-
-    $("textarea#question").val(questionPrompt);
-    $("textarea#feedback").val(feedbackPrompt);
-    $("textarea#question").focus(function() { clearIf($(this), questionPrompt) });
-    $("textarea#feedback").focus(function() { clearIf($(this), feedbackPrompt) });
-
-    // Open up our control socket
-    connectControlChannel();
-  }
+	$('#notesInfo').hide()
 }
 
 function loadSlides(load_slides, prefix) {
@@ -134,7 +97,6 @@ function initializePresentation(prefix) {
 	})
 
 	setupMenu()
-	setupStyleMenu()
 	if (slidesLoaded) {
 		showSlide()
 	} else {
@@ -358,109 +320,6 @@ function clearIf(elem, val) {
   if(elem.val() == val ) { elem.val(''); }
 }
 
-function connectControlChannel() {
-  if (websocket_supported) {
-    ws           = new WebSocket('ws://' + location.host + '/control');
-    ws.onopen    = function()  { connected();          };
-    ws.onclose   = function()  { disconnected();       }
-    ws.onmessage = function(m) { parseMessage(m.data); };
-  }
-}
-
-// This exists as an intermediary simply so the presenter view can override it
-function reconnectControlChannel() {
-  connectControlChannel();
-}
-
-function connected() {
-  console.log('Control socket opened');
-  $("#feedbackSidebar button").attr("disabled", false);
-  $("img#disconnected").hide();
-
-  try {
-    // If we are a presenter, then remind the server where we are
-    update();
-    register();
-  }
-  catch (e) {}
-}
-
-function disconnected() {
-  console.log('Control socket closed');
-  $("#feedbackSidebar button").attr("disabled", true);
-  $("img#disconnected").show();
-
-  setTimeout(function() { reconnectControlChannel() } , 5000);
-}
-
-function parseMessage(data) {
-  var command = JSON.parse(data);
-
-  if ("current" in command) { follow(command["current"]); }
-
-  // Presenter messages only, so catch errors if method doesn't exist
-  try {
-    if ("pace"     in command) { paceFeedback(command["pace"]);     }
-    if ("question" in command) {  askQuestion(command["question"]); }
-  }
-  catch(e) {
-    console.log("Not a presenter!");
-  }
-
-}
-
-function sendPace(pace) {
-  ws.send(JSON.stringify({ message: 'pace', pace: pace}));
-  feedbackActivity();
-}
-
-function askQuestion(question) {
-  ws.send(JSON.stringify({ message: 'question', question: question}));
-  $("textarea#question").val(questionPrompt);
-  feedbackActivity();
-}
-
-function sendFeedback(rating, feedback) {
-  var slide  = $("#slideFilename").text();
-  ws.send(JSON.stringify({ message: 'feedback', rating: rating, feedback: feedback, slide: slide}));
-  $("textarea#feedback").val(feedbackPrompt);
-  $("input:radio[name=rating]:checked").attr('checked', false);
-  feedbackActivity();
-}
-
-function feedbackActivity() {
-  $("img#feedbackActivity").show();
-  setTimeout(function() { $("img#feedbackActivity").hide() }, 1000);
-}
-
-function track() {
-  if (mode.track && websocket_supported) {
-    var slideName    = $("#slideFilename").text();
-    var slideEndTime = new Date().getTime();
-    var elapsedTime  = slideEndTime - slideStartTime;
-
-    // reset the timer
-    slideStartTime = slideEndTime;
-
-    if (elapsedTime > 1000) {
-      elapsedTime /= 1000;
-      ws.send(JSON.stringify({ message: 'track', slide: slideName, time: elapsedTime}));
-    }
-  }
-}
-
-function follow(slide) {
-  if (mode.follow) {
-    console.log("New slide: " + slide);
-    gotoSlide(slide);
-  }
-}
-
-function getPosition() {
-  // get the current position from the server
-  ws.send(JSON.stringify({ message: 'position' }));
-}
-
 function prevStep(updatepv)
 {
 	var event = jQuery.Event("showoff:prev");
@@ -468,8 +327,6 @@ function prevStep(updatepv)
 	if (event.isDefaultPrevented()) {
 			return;
 	}
-
-  track();
 
 	slidenum--
 	return showSlide(true, updatepv) // We show the slide fully loaded
@@ -482,8 +339,6 @@ function nextStep(updatepv)
 	if (event.isDefaultPrevented()) {
 			return;
 	}
-
-	track();
 
 	if (incrCurr >= incrSteps) {
 		slidenum++
@@ -531,18 +386,6 @@ function toggleNotes()
 	} else {
 		$('#notesInfo').hide()
 	}
-}
-
-function toggleFollow()
-{
-  mode.follow = ! mode.follow;
-
-  if(mode.follow) {
-    $("#followMode").show().text('Follow Mode:');
-    getPosition();
-  } else {
-    $("#followMode").hide();
-  }
 }
 
 function executeAnyCode()
@@ -628,50 +471,13 @@ function keyDown(event)
 			showSlide()
 		}
 	}
-	else if (key == 84 || key == 67)  // T or C for table of contents
-	{
-		$('#navmenu').toggle().trigger('click')
-	}
-	else if (key == 83)  // 's' for style
-	{
-		$('#stylemenu').toggle().trigger('click')
-	}
 	else if (key == 90 || key == 191) // z or ? for help
 	{
 		$('#help').toggle()
 	}
-	else if (key == 66) // b for blank, also what kensington remote "stop" button sends
-	{
-		blankScreen()
-	}
-  else if (key == 70) // f for footer
-	{
-		toggleFooter()
-	}
-	else if (key == 71) // g for follow mode
-	{
-  	toggleFollow()
-	}
-	else if (key == 76) // l for leader mode
-	{
-		toggleLeader()
-	}
 	else if (key == 78) // 'n' for notes
 	{
 		toggleNotes()
-	}
-	else if (key == 27) // esc
-	{
-		removeResults();
-	}
-	else if (key == 80) // 'p' for preshow, 'P' for pause
-	{
-    if (shiftKeyActive) {
-      togglePause();
-    }
-    else {
-      togglePreShow();
-    }
 	}
 	return true
 }
@@ -753,264 +559,3 @@ var print = function(text) {
 	$('body').append(_results);
 	_results.click(removeResults);
 };
-
-function executeCode () {
-	result = null;
-	var codeDiv = $(this);
-	codeDiv.addClass("executing");
-	eval(codeDiv.text());
-	setTimeout(function() { codeDiv.removeClass("executing");}, 250 );
-	if (result != null) print(result);
-}
-$('.execute .sh_javascript code').live("click", executeCode);
-
-function executeRuby () {
-	var codeDiv = $(this);
-	codeDiv.addClass("executing");
-    $.get('/eval_ruby', {code: codeDiv.text()}, function(result) {
-        if (result != null) print(result);
-        codeDiv.removeClass("executing");
-    });
-}
-$('.execute .sh_ruby code').live("click", executeRuby);
-
-function executeCoffee() {
-	result = null;
-	var codeDiv = $(this);
-	codeDiv.addClass("executing");
-  // Coffeescript encapsulates everything, so result must be attached to window.
-  var code = codeDiv.text() + ';window.result=result;'
-	eval(CoffeeScript.compile(code));
-	setTimeout(function() { codeDiv.removeClass("executing");}, 250 );
-	if (result != null) print(result);
-}
-$('.execute .sh_coffeescript code').live("click", executeCoffee);
-
-/********************
- PreShow Code
- ********************/
-
-var preshow_seconds = 0;
-var preshow_secondsLeft = 0;
-var preshow_secondsPer = 8;
-var preshow_running = false;
-var preshow_timerRunning = false;
-var preshow_current = 0;
-var preshow_images;
-var preshow_imagesTotal = 0;
-var preshow_des = null;
-
-function togglePreShow() {
-	if(preshow_running) {
-		stopPreShow()
-	} else {
-		var minutes = prompt("Minutes from now to start")
-
-		if (preshow_secondsLeft = parseFloat(minutes) * 60) {
-			toggleFooter()
-			$.getJSON("preshow_files", false, function(data) {
-				$('#preso').after("<div id='preshow'></div><div id='tips'></div><div id='preshow_timer'></div>")
-				$.each(data, function(i, n) {
-					if(n == "preshow.json") {
-						// has a descriptions file
-						$.getJSON("/file/_preshow/preshow.json", false, function(data) {
-							preshow_des = data
-						})
-					} else {
-						$('#preshow').append('<img ref="' + n + '" src="/file/_preshow/' + n + '"/>')
-					}
-				})
-				startPreShow()
-			})
-		}
-	}
-}
-
-function startPreShow() {
-	if (!preshow_running) {
-		preshow_running = true
-		preshow_seconds = 0
-		preshow_images = $('#preshow > img')
-		preshow_imagesTotal = preshow_images.size()
-		nextPreShowImage()
-
-		if(!preshow_timerRunning) {
-			setInterval(function() {
-				preshow_timerRunning = true
-				if (!preshow_running) { return }
-				preshow_seconds++
-				preshow_secondsLeft--
-		if (preshow_secondsLeft < 0) {
-			stopPreShow()
-		}
-				if (preshow_seconds == preshow_secondsPer) {
-					preshow_seconds = 0
-					nextPreShowImage()
-				}
-		addPreShowTips()
-			}, 1000)
-		}
-	}
-}
-
-function addPreShowTips() {
-	time = secondsToTime(preshow_secondsLeft)
-	$('#preshow_timer').text('Resuming in: ' + time)
-	var des = preshow_des && preshow_des[tmpImg.attr("ref")]
-	if(des) {
-		$('#tips').show()
-		$('#tips').text(des)
-	} else {
-		$('#tips').hide()
-	}
-}
-
-function secondsToTime(sec) {
-	min = Math.floor(sec / 60)
-	sec = sec - (min * 60)
-	if(sec < 10) {
-		sec = "0" + sec
-	}
-	return min + ":" + sec
-}
-
-function stopPreShow() {
-	preshow_running = false
-
-	$('#preshow').remove()
-	$('#tips').remove()
-	$('#preshow_timer').remove()
-
-	toggleFooter()
-	loadSlides(loadSlidesBool, loadSlidesPrefix);
-}
-
-function nextPreShowImage() {
-	preshow_current += 1
-	if((preshow_current + 1) > preshow_imagesTotal) {
-		preshow_current = 0
-	}
-
-	$("#preso").empty()
-	tmpImg = preshow_images.eq(preshow_current).clone()
-	$(tmpImg).attr('width', '1020')
-	$("#preso").html(tmpImg)
-}
-
-/********************
- End PreShow Code
- ********************/
-
-function togglePause() {
-  $("#pauseScreen").toggle();
-}
-
-/********************
- Style-Picker Code
- ********************/
-
-function styleChoiceTags() {
-  return $('link[rel*="stylesheet"][href*="file/"]');
-}
-
-function styleChoices() {
-  return $.map(styleChoiceTags(), function(el) { return styleChoiceString(el.href); });
-}
-
-function styleChoiceString(href) {
-  var parts = href.split('/');
-  var file = parts[parts.length - 1];
-  var choice = file.replace(/\.css$/, '');
-
-  return choice;
-}
-
-function getCurrentStyle()
-{
-  var current = '';
-
-  styleChoiceTags().each(function (i, el) {
-    if (el.rel == 'stylesheet') {
-      current = el.href;
-    }
-  });
-
-  return styleChoiceString(current);
-}
-
-function setCurrentStyle(style, prop)
-{
-  styleChoiceTags().each(function (i, el) {
-    el.rel = 'alternate stylesheet';
-
-    if (styleChoiceString(el.href) == style) {
-      el.rel = 'stylesheet';
-    }
-  });
-
-  if (prop) {
-    if ('presenterView' in window) {
-      var pv = window.presenterView;
-      pv.setCurrentStyle(style, false);
-    }
-  }
-}
-
-function setupStyleMenu() {
-    $('#stylemenu').hide();
-
-    var menu = new StyleListMenu();
-    styleChoices().each(function(s) {
-        menu.addItem(s)
-    })
-
-    $('#stylepicker').html(menu.getList())
-    $('#stylemenu').menu({
-        content: $('#stylepicker').html(),
-        flyOut: true
-    });
-}
-
-function StyleListMenu()
-{
-  this.typeName = 'StyleListMenu'
-  this.items = new Array();
-  this.addItem = function (key) {
-    this.items[key] = new StyleListMenuItem(key)
-  }
-  this.getList = function() {
-    var newMenu = $("<ul>")
-    for(var i in this.items) {
-      var item = this.items[i]
-      var domItem = $("<li>")
-      if (item.textName != undefined) {
-        choice = $("<a onclick=\"setCurrentStyle('" + item.textName + "', true); $('#stylemenu').hide();\" href=\"#\">" + item.textName + "</a>")
-        domItem.append(choice)
-        newMenu.append(domItem)
-      }
-    }
-    return newMenu
-  }
-}
-
-function StyleListMenuItem(t)
-{
-  this.typeName = "StyleListMenuItem"
-  this.textName = t
-}
-/********************
- End Style-Picker Code
- ********************/
-
-
-/********************
- Stats page
- ********************/
-
-function setupStats()
-{
-  $("#stats div#all div.detail").hide();
-  $("#stats div#all div.row").click(function() {
-      $(this).find("div.detail").slideToggle("fast");
-  });
-}

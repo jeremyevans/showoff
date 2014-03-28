@@ -10,8 +10,6 @@
 
 <body>
 
-<span id="issueUrl"><%= @issues %></span>
-
 <div id="help">
   <table>
     <tr><td class="key">z, ?</td><td>toggle help (this)</td></tr>
@@ -19,10 +17,7 @@
     <tr><td class="key">shift-space, &larr;</td><td>previous slide</td></tr>
     <tr><td class="key">d</td><td>toggle debug mode</td></tr>
     <tr><td class="key">## &lt;ret&gt;</td><td>go to slide #</td></tr>
-    <tr><td class="key">c, t</td><td>table of contents (vi)</td></tr>
     <tr><td class="key">r</td><td>reload slides</td></tr>
-    <tr><td class="key">p</td><td>run preshow</td></tr>
-    <tr><td class="key">s</td><td>choose style</td></tr>
   </table>
 </div>
 
@@ -33,11 +28,6 @@
     </div>
     <span id="links">
       <span class="desktop">
-        <% if @issues %>
-          <a id="report" href="javascript:reportIssue();" title="Report an issue with the current slide.">Report Issue With Slide</a>
-        <% end %>
-        <a id="stats" href="/stats" target="_showoffchild">Viewing Statistics</a>
-        <a id="downloads" href="/download" target="_showoffchild">Downloads</a>
         <a id="slaveWindow" href="javascript:toggleSlave();" title="Enable the slave window.">Enable Slave Window</a>
         <a id="generatePDF" href="/pdf" title="Call out to wkhtmltopdf to generate a PDF.">Generate PDF</a>
         <a id="onePage" href="/onepage" title="Load the single page view. Useful for printing.">Single Page</a>
@@ -50,20 +40,6 @@
 
   <div id="center">
     <div id="sidebar" class="grid_4">
-      <div id="timerSection">
-        Timer:
-        <span id="minStart">
-          <input type="text" size="8" id="timerMinutes"/> min
-          <input type="button" id="startTimer" value="Start">
-        </span>
-        <span id="timerInfo"></span>
-        <span id="minStop"><input type="button" id="stopTimer" value="Stop"></span>
-      </div>
-      <div id="feedbackPace">
-        <span id="paceSlow">Speed Up!</span>
-        <span id="paceFast">Slow Down!</span>
-        <img id="paceMarker" src="css/paceMarker.png" />
-      </div>
       <div id="slidemenu">
         <div id="navigation" class="menu"></div>
       </div>
@@ -72,28 +48,9 @@
       <img id="disconnected" src="/css/disconnected-large.png" />
       <div id="preso" class="zoomed">loading presentation...</div>
     </div>
-    <div id="statusbar">
-      <span id="progress">
-        Slide: <span id="slideInfo"></span>
-      </span>
-      <div id="debugInfo"></div>
-      <input id="zoomer" type="range" min="0.5" max="1.5" step="0.01" onchange="javascript:zoom();" title="Alter the zoom level of the slide preview." />
-      <span id="enableRemote" title="Enables tracking of other presenters.">
-        <label for="remoteToggle">Enable Remote</label><input type="checkbox" id="remoteToggle" checked />
-      </span>
-      <span id="enableFollower" title="Send slide change notifications.">
-        <label for="followerToggle">Update Follower</label><input type="checkbox" id="followerToggle" checked />
-      </span>
-    </div>
   </div>
 
-  <div id="separator"></div>
-
   <div id="bottom" class="grid_12">
-    <div id="questions">
-      <h3>Audience Questions</h3>
-      <ul></ul>
-    </div>
     <div id="notes"></div>
   </div>
 </div>
