@@ -29,19 +29,6 @@ $(document).ready(function(){
   zoom();
   $(window).resize(function() { zoom(); });
 
-  // set up tooltips
-  $('#report').tipsy({ offset: 5 });
-  $('#slaveWindow').tipsy({ offset: 5 });
-  $('#generatePDF').tipsy({ offset: 5 });
-  $('#onePage').tipsy({ offset: 5, gravity: 'ne' });
-
-  $('#stats').tipsy({ html: true, width: 450, trigger: 'manual', gravity: 'ne', opacity: 0.9, offset: 5 });
-  $('#downloads').tipsy({ html: true, width: 425, trigger: 'manual', gravity: 'ne', opacity: 0.9, offset: 5 });
-
-  $('#enableFollower').tipsy({ gravity: 'ne' });
-  $('#enableRemote').tipsy();
-  $('#zoomer').tipsy({ gravity: 'ne' });
-
   // Bind events for mobile viewing
   $('#preso').unbind('tap').unbind('swipeleft').unbind('swiperight');
 
