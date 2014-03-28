@@ -19,9 +19,6 @@ var shiftKeyActive = false
 var query
 var slideStartTime = new Date().getTime()
 
-var questionPrompt = 'Ask a question...'
-var feedbackPrompt = 'Why?...'
-
 var loadSlidesBool
 var loadSlidesPrefix
 

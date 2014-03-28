@@ -25,13 +25,6 @@ class ShowOff < Sinatra::Application
   set :views, File.dirname(__FILE__) + '/../views'
   set :public_folder, File.dirname(__FILE__) + '/../public'
 
-  set :statsdir, "stats"
-  set :viewstats, "viewstats.json"
-  set :feedback, "feedback.json"
-
-  set :sockets, []
-  set :presenters, []
-
   set :verbose, false
   set :pres_dir, '.'
   set :pres_file, 'showoff.json'
@@ -39,15 +32,6 @@ class ShowOff < Sinatra::Application
   set :pres_template, nil
   set :showoff_config, {}
   set :encoding, nil
-
-  FileUtils.mkdir settings.statsdir unless File.directory? settings.statsdir
-
-  # Page view time accumulator. Tracks how often slides are viewed by the audience
-  begin
-    @@counter = JSON.parse(File.read("#{settings.statsdir}/#{settings.viewstats}"))
-  rescue
-    @@counter = Hash.new
-  end
 
   @@downloads = Hash.new # Track downloadable files
   @@cookie    = nil      # presenter cookie. Identifies the presenter for control messages
@@ -549,8 +533,6 @@ class ShowOff < Sinatra::Application
         @asset_path = "./"
       end
 
-      # Check to see if the presentation has enabled feedback
-      @feedback = settings.showoff_config['feedback']
       erb :index
     end
 
@@ -630,27 +612,6 @@ class ShowOff < Sinatra::Application
       end
       @downloads.merge! @@downloads
       erb :download
-    end
-
-    def stats()
-      if request.env['REMOTE_HOST'] == 'localhost'
-        # the presenter should have full stats
-        @counter = @@counter
-      end
-
-      @all = Hash.new
-      @@counter.each do |slide, stats|
-        @all[slide] = 0
-        stats.map do |host, visits|
-          visits.each { |entry| @all[slide] += entry['elapsed'].to_f }
-        end
-      end
-
-      # most and least five viewed slides
-      @least = @all.sort_by {|slide, time| time}[0..4]
-      @most = @all.sort_by {|slide, time| -time}[0..4]
-
-      erb :stats
     end
 
     def pdf(static=true)
@@ -843,16 +804,5 @@ class ShowOff < Sinatra::Application
     @asset_path.slice!(/^./)
     @env = request.env
     erb :'404'
-  end
-
-  at_exit do
-    if defined?(@@counter)
-      filename = "#{settings.statsdir}/#{settings.viewstats}"
-      if settings.verbose then
-        File.write(filename, JSON.pretty_generate(@@counter))
-      else
-        File.write(filename, @@counter.to_json)
-      end
-    end
   end
 end

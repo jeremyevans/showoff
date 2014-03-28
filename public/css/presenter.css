@@ -82,36 +82,6 @@ div.zoomed {
     .tRed    { background: #d99; }
     .tYellow { background: #dd9; }
 
-#sidebar #feedbackPace {
-  height: 10%;
-  position: relative;
-  background: transparent url(pace.png) no-repeat center bottom;
-}
-#sidebar #feedbackPace #paceFast,
-#sidebar #feedbackPace #paceSlow {
-  font-size: 1.5em;
-  font-weight: bold;
-  display: none;
-}
-#sidebar #feedbackPace #paceFast {
-  float: left;
-  margin-left: 1em;
-}
-#sidebar #feedbackPace #paceSlow {
-  float: right;
-  margin-right: 1em;
-}
-#sidebar #feedbackPace #paceMarker {
-  left: 50%;
-  position: absolute;
-  transform: translate(-50%, -50%);
-  -webkit-transform: translate(-50%, 0);
-  -moz-transform: translate(-50%, 0);
-	-ms-transform: translate(-50%, 0);
-	-o-transform: translate(-50%, 0);
-
-}
-
     #slidemenu {
       height: 85%;
       background-color: #fff;
