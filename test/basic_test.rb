@@ -1,5 +1,4 @@
 require File.expand_path "../test_helper", __FILE__
-require 'pdf/inspector'
 
 context "ShowOff basic tests" do
 
@@ -40,6 +39,8 @@ context "ShowOff basic tests" do
   end
 
   if Object.const_defined? :PDFKit
+    require 'pdf/inspector'
+
     test "can create a pdf version" do
       get '/pdf'
       assert last_response.ok?, last_response.body =~ /(No wkhtmltopdf executable found)/ ? $1 : 'Unknown error'
