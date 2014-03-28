@@ -268,14 +268,17 @@ function getCurrentNotes()
 
 function getCurrentNotesText()
 {
-    var notes = getCurrentNotes();
-    return notes.text();
+    var html = getCurrentNotes().html();
+    if (html) { 
+      html = html.replace(/\|/g, '<br /><br />');
+    }
+    return html;
 }
 
 function setCurrentNotes()
 {
     var notes = getCurrentNotesText();
-    $('#notesInfo').text(notes);
+    $('#notesInfo').html(notes);
     return notes;
 }
 

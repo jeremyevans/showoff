@@ -133,8 +133,8 @@ function presNextStep()
 function postSlide()
 {
 	if(currentSlide) {
-    var notes = getCurrentNotes()
-		$('#notes').html(notes.html())
+    var notes = getCurrentNotesText()
+    $('#notes').html(notes)
 
 		var fileName = currentSlide.children().first().attr('ref')
 		$('#slideFile').text(fileName)
