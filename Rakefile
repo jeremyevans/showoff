@@ -3,24 +3,16 @@ task :doc do
   system("rdoc --main README.rdoc README.rdoc documentation/*.rdoc")
 end
 
+require 'rake/testtask'
+
 desc "Run tests"
-task :test do
-  require 'rake/testtask'
-
-  Rake::TestTask.new do |t|
-    t.libs << 'lib'
-    t.pattern = 'test/**/*_test.rb'
-    t.verbose = false
-  end
-
-  suffix = "-n #{ENV['TEST']}" if ENV['TEST']
-  sh "turn test/*_test.rb #{suffix}"
+Rake::TestTask.new do |t|
+  t.libs << 'lib'
+  t.pattern = 'test/**/*_test.rb'
+  t.verbose = false
 end
 
-begin
-  require 'mg'
-  MG.new("showoff.gemspec")
-rescue LoadError
-  puts "'gem install mg' to get helper gem publishing tasks. (optional)"
+desc "Build gem"
+task :package do |p|
+  sh %{#{FileUtils::RUBY} -S gem build showoff.gemspec}
 end
-

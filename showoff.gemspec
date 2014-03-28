@@ -32,7 +32,6 @@ Gem::Specification.new do |s|
     s.add_dependency      "nokogiri"
   end
 
-  s.add_development_dependency "mg"
   s.description       = <<-desc
 My fork of showoff with a lot of features removed.
   desc
