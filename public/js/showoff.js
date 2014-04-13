@@ -18,6 +18,7 @@ var gotoSlidenum = 0
 var shiftKeyActive = false
 var query
 var slideStartTime = new Date().getTime()
+var slaveMode = false;
 
 var loadSlidesBool
 var loadSlidesPrefix
@@ -55,7 +56,6 @@ function setupPreso(load_slides, prefix) {
   // Make sure the slides always look right.
   // Better would be dynamic calculations, but this is enough for now.
   $(window).resize(function(){location.reload();});
-	$('#notesInfo').hide()
 }
 
 function loadSlides(load_slides, prefix) {
@@ -279,6 +279,9 @@ function setCurrentNotes()
 {
     var notes = getCurrentNotesText();
     $('#notesInfo').html(notes);
+    if (slaveMode) {
+      $('#notesInfo').hide()
+    }
     return notes;
 }
 

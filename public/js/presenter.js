@@ -1,6 +1,5 @@
 // presenter js
 var slaveWindow = null;
-var slaveMode = false;
 
 var paceData = [];
 
