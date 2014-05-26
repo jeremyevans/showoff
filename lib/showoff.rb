@@ -684,8 +684,8 @@ class ShowOff < Sinatra::Application
         FileUtils.makedirs(file_dir)
         pres_dir = showoff.settings.pres_dir
 
-        # ..., copy all user-defined styles and javascript files
-        Dir.glob("#{pres_dir}/*.{css,js}").each { |path|
+        # ..., copy all user-defined styles, javascript, images, and fonts
+        Dir.glob("#{pres_dir}/*.{css,js,png,jpg,svg,gif,ttf}").each { |path|
           FileUtils.copy(path, File.join(file_dir, File.basename(path)))
         }
 
