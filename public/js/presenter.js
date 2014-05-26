@@ -43,6 +43,7 @@ $(document).ready(function(){
       gotoSlide(data);
     });
   });
+	postSlide();
 });
 
 function toggleSlave() {
@@ -55,11 +56,11 @@ function openSlave()
   if (slaveMode) {
     try {
       if(slaveWindow == null || typeof(slaveWindow) == 'undefined' || slaveWindow.closed){
-          slaveWindow = window.open('/' + window.location.hash, 'toolbar');
+          slaveWindow = window.open('index.html' + window.location.hash, 'toolbar');
       }
       else if(slaveWindow.location.hash != window.location.hash) {
         // maybe we need to reset content?
-        slaveWindow.location.href = '/' + window.location.hash;
+        slaveWindow.location.href = 'index.html' + window.location.hash;
       }
 
       // maintain the pointer back to the parent.

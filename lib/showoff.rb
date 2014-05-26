@@ -536,10 +536,21 @@ class ShowOff < Sinatra::Application
       erb :index
     end
 
-    def presenter
-      @issues    = settings.showoff_config['issues']
-      @@cookie ||= guid()
-      response.set_cookie('presenter', @@cookie)
+    def presenter(static=false)
+      if static
+        @title = ShowOffUtils.showoff_title(settings.pres_dir)
+        @slides = get_slides_html(:static=>static)
+        @pause_msg = ShowOffUtils.pause_msg
+
+        # Identify which languages to bundle for highlighting
+        @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
+
+        @asset_path = "./"
+      else
+        @@cookie ||= guid()
+        response.set_cookie('presenter', @@cookie)
+      end
+
       erb :presenter
     end
 
@@ -666,6 +677,12 @@ class ShowOff < Sinatra::Application
         file = File.new("#{out}/index.html", "w")
         file.puts(data)
         file.close
+        if what == 'index'
+          data = showoff.presenter(true)
+          file = File.new("#{out}/presenter.html", "w")
+          file.puts(data)
+          file.close
+        end
         # Now copy all the js and css
         my_path = File.join( File.dirname(__FILE__), '..', 'public')
         ["js", "css"].each { |dir|
@@ -772,6 +789,7 @@ class ShowOff < Sinatra::Application
     what = params[:captures].first
     opt  = params[:captures][1]
     what = 'index' if "" == what
+    what.sub!(/\A(index|presenter)\.html\z/, '\1')
 
     if settings.showoff_config.has_key? 'protected'
       protected! if settings.showoff_config['protected'].include? what
@@ -801,7 +819,7 @@ class ShowOff < Sinatra::Application
 
   not_found do
     # Why does the asset path start from cwd??
-    @asset_path.slice!(/^./)
+    @asset_path.slice!(/^./) if @asset_path
     @env = request.env
     erb :'404'
   end
