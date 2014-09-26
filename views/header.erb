@@ -12,6 +12,19 @@
 
   <link rel="stylesheet" href="<%= @asset_path %>/css/showoff.css" type="text/css"/>
 
+  <% if size = settings.showoff_config['size'] %>
+    <% width, height =  size.split('x') %>
+    <style type="text/css">
+      @media screen {
+        #preso, .slide {
+          width: <%= width %>px;
+          height: <%= height %>px;
+        }
+        #footer { width: <%= width.to_i - 19 %>px; }
+      }
+    </style>
+  <% end %>
+
   <script type="text/javascript" src="<%= @asset_path %>/js/jquery-1.4.2.min.js"></script>
   <script type="text/javascript" src="<%= @asset_path %>/js/jquery.cycle.all.js"></script>
 	<script type="text/javascript" src="<%= @asset_path %>/js/jquery-print.js"></script>
