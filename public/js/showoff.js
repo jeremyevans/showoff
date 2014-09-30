@@ -248,8 +248,6 @@ function showSlide(back_step, updatepv) {
     pv.incrSteps = incrSteps
 		pv.showSlide(true);
 		pv.postSlide();
-
-		pv.update();
 	}
 
 	return ret;
