@@ -55,7 +55,9 @@ function setupPreso(load_slides, prefix) {
 
   // Make sure the slides always look right.
   // Better would be dynamic calculations, but this is enough for now.
-  $(window).resize(function(){location.reload();});
+  if (!no_resize) {
+    $(window).resize(function(){location.reload();});
+  }
 }
 
 function loadSlides(load_slides, prefix) {

@@ -58,6 +58,16 @@
 
   <script type="text/javascript">
   $(function(){
+    <% if @static %>
+      if($(window).width() < $(document).width()) {
+        no_resize = true;
+        $('body').css("zoom", ""+($(window).width()*100.0)/$(document).width()+"%");
+        $('body').css("overflow-y", "auto");
+        $('body').css("overflow-x", "hidden");
+        $('#notesInfo').css("font-size", ""+$(document).width()*14.0/$(window).width()+"px");
+        $('#notesInfo').css("line-height", ""+$(document).width()*20.0/$(window).width()+"px");
+      }
+    <% end %>
       setupPreso(<%= @slides.nil? ? "true" : "false"%>, '<%= @asset_path %>');
   });
   </script>

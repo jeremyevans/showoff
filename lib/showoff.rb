@@ -523,6 +523,7 @@ class ShowOff < Sinatra::Application
 
     def index(static=false)
       if static
+        @static = true
         @title = ShowOffUtils.showoff_title(settings.pres_dir)
         @slides = get_slides_html(:static=>static)
         @pause_msg = ShowOffUtils.pause_msg
