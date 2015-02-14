@@ -19,6 +19,7 @@ var shiftKeyActive = false
 var query
 var slideStartTime = new Date().getTime()
 var slaveMode = false;
+var no_resize = false;
 
 var loadSlidesBool
 var loadSlidesPrefix
