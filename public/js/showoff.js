@@ -20,6 +20,7 @@ var query
 var slideStartTime = new Date().getTime()
 var slaveMode = false;
 var no_resize = false;
+var verticalCenterSlides = false;
 
 var loadSlidesBool
 var loadSlidesPrefix
@@ -114,7 +115,10 @@ function initializePresentation(prefix) {
 }
 
 function centerSlides(slides) {
-	slides.filter('.vc').each(function(s, slide) {
+  if (!verticalCenterSlides) {
+    slides = slides.filter('.vc')
+  }
+	slides.each(function(s, slide) {
 		centerSlide(slide)
 	})
 }

@@ -57,6 +57,9 @@
   <% end %>
 
   <script type="text/javascript">
+  <% if settings.showoff_config['vertical-center'] %>
+    verticalCenterSlides = true;
+  <% end %>
   $(function(){
     <% if @static %>
       if($(window).width() < $(document).width()) {
