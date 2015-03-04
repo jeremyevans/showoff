@@ -9,7 +9,7 @@
 
   <% if size = settings.showoff_config['size'] %>
     <style type="text/css">
-      #preview div.zoomed { zoom: 70%;}
+      #preview div.zoomed { zoom: <%= 92500/(size.split('x').first.to_i) %>%;}
     </style>
   <% end %>
 
