@@ -1,8 +1,6 @@
 // presenter js
 var slaveWindow = null;
 
-var paceData = [];
-
 $(document).ready(function(){
   // the presenter window doesn't need the reload on resize bit
   $(window).unbind('resize');
