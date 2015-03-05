@@ -62,7 +62,7 @@
   <% end %>
   $(function(){
     <% if @static %>
-      if($(window).width() < $(document).width()) {
+      if(!('slaveWindow' in window) && window.name !== 'toolbar' && $(window).width() < $(document).width()) {
         no_resize = true;
         $('body').css("zoom", ""+($(window).width()*100.0)/$(document).width()+"%");
         $('body').css("overflow-y", "auto");
