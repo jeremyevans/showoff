@@ -136,7 +136,7 @@ class ShowOff < Sinatra::Application
         @text << "\n"
       end
       def empty?
-        @text.strip == ""
+        @text.strip == "" || @classes == ['skip']
       end
     end
 
