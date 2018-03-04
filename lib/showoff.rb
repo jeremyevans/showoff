@@ -25,7 +25,6 @@ class ShowOff < Sinatra::Application
   set :encoding, nil
 
   @@downloads = Hash.new # Track downloadable files
-  @@cookie    = nil      # presenter cookie. Identifies the presenter for control messages
   @@current   = Hash.new # The current slide that the presenter is viewing
 
   def initialize(app=nil)
@@ -458,9 +457,6 @@ class ShowOff < Sinatra::Application
         @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
 
         @asset_path = "./"
-      else
-        @@cookie ||= guid()
-        response.set_cookie('presenter', @@cookie)
       end
 
       erb :presenter
@@ -596,15 +592,6 @@ class ShowOff < Sinatra::Application
    rescue => e
      e.message
    end
-
-  def guid
-    # this is a terrifyingly simple GUID generator
-    (0..15).to_a.map{|a| rand(16).to_s(16)}.join
-  end
-
-  def valid_cookie
-    (request.cookies['presenter'] == @@cookie)
-  end
 
   get '/eval_ruby' do
     return eval_ruby(params[:code]) if ENV['SHOWOFF_EVAL_RUBY']
