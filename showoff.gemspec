@@ -20,7 +20,6 @@ Gem::Specification.new do |s|
   s.files            += Dir.glob("public/**/*")
   s.add_dependency      "sinatra", ">= 2"
   s.add_dependency      "json"
-  s.add_dependency      "htmlentities"
   s.add_dependency      "maruku"
   s.add_dependency      "nokogiri"
 

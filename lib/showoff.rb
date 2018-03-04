@@ -3,7 +3,6 @@ require 'json'
 require 'nokogiri'
 require 'fileutils'
 require 'logger'
-require 'htmlentities'
 require 'maruku'
 
 require_relative "showoff_utils"
@@ -236,10 +235,9 @@ class ShowOff < Sinatra::Application
         end
 
         # Apply the template to the slide and replace the key to generate the content of the slide
-        sl = process_content_for_replacements(template.gsub(/~~~CONTENT~~~/, slide.text))
+        sl = template.gsub(/~~~CONTENT~~~/, slide.text)
         sl = Tilt[:markdown].new(nil, nil, {}) { sl }.render
         sl = update_p_classes(sl)
-        sl = process_content_for_section_tags(sl)
         sl = update_special_content(sl, @slide_count, name) # TODO: deprecated
         sl = update_image_paths(name, sl, opts)
 
@@ -254,55 +252,6 @@ class ShowOff < Sinatra::Application
         end
       end
       final
-    end
-
-    # This method processes the content of the slide and replaces
-    # content markers with their actual value information
-    def process_content_for_replacements(content)
-      # update counters, incrementing section:minor if needed
-      result = content.gsub("~~~CURRENT_SLIDE~~~", @slide_count.to_s)
-      result.gsub!("~~~SECTION:MAJOR~~~", @section_major.to_s)
-      if result.include? "~~~SECTION:MINOR~~~"
-        @section_minor += 1
-        result.gsub!("~~~SECTION:MINOR~~~", @section_minor.to_s)
-      end
-
-      # scan for pagebreak tags. Should really only be used for handout notes or supplemental materials
-      result.gsub!("~~~PAGEBREAK~~~", '<div class="break">continued...</div>')
-
-      # Now check for any kind of options
-      content.scan(/(~~~CONFIG:(.*?)~~~)/).each do |match|
-        result.gsub!(match[0], settings.showoff_config[match[1]]) if settings.showoff_config.key?(match[1])
-      end
-
-      # Load and replace any file tags
-      content.scan(/(~~~FILE:([^:]*):?(.*)?~~~)/).each do |match|
-        # get the file content and parse out html entities
-        file = HTMLEntities.new.encode(File.read(File.join(settings.pres_dir, '_files', match[1])))
-
-        # make a list of sh_highlight classes to include
-        css  = match[2].split.collect {|i| "sh_#{i.downcase}" }.join(' ')
-
-        result.gsub!(match[0], "<pre class=\"#{css}\"><code>#{file}</code></pre>")
-      end
-
-      result
-    end
-
-    # replace section tags with classed div tags
-    def process_content_for_section_tags(content)
-      return unless content
-
-      # because this is post markdown rendering, we may need to shift a <p> tag around
-      # remove the tags if they're by themselves
-      result = content.gsub(/<p>~~~SECTION:([^~]*)~~~<\/p>/, '<div class="\1">')
-      result.gsub!(/<p>~~~ENDSECTION~~~<\/p>/, '</div>')
-
-      # shove it around the div if it belongs to the contained element
-      result.gsub!(/(<p>)?~~~SECTION:([^~]*)~~~/, '<div class="\2">\1')
-      result.gsub!(/~~~ENDSECTION~~~(<\/p>)?/, '\1</div>')
-
-      result
     end
 
     def process_content_for_all_slides(content, num_slides, opts={})
