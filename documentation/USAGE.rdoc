@@ -34,13 +34,6 @@ web browser. The following URL paths are available for use by you and your audie
   popup blocker running, the slave window may not open. There is a button in the toolbar
   to manually open a new slave window in this case.
 
-  If password protection is enabled, this view is often protected and you will need
-  to authenticate to view.
-
-  If this path is opened by a secondary device, such as a mobile browser, then it can also
-  control the presentation if enabled with the <tt>Enable Remote</tt>  button. Showoff
-  tries to be intelligent about which slide change updates to track.
-
 [http://localhost:9090/onepage]
   This will generate a single page representing your entire presentation. It is primarily
   useful when a viewer has an older browser than cannot handle the transitions properly
@@ -95,86 +88,14 @@ The following hotkeys are available for usage while viewing the slideshow.
 
 = Command Line Usage
 
-== <tt>showoff help [command]</tt>
+== <tt>showoff create $name</tt>
 
-Shows list of commands or help for one command
+Create a directory for a new showoff presentation with the given name.
 
+== <tt>showoff serve $host $port</tt>
 
-== <tt>showoff heroku heroku_name</tt>
+Serves the showoff presentation in the current directory.  host defaults to 127.0.0.1 and port to 9090.
 
-Setup your presentation to serve on Heroku
+== <tt>showoff static</tt>
 
-Creates the Gemfile and config.ru file needed to push a showoff pres to heroku.  It will then run heroku create for you to register the new project on heroku and add the git remote for you.  Then all you need to do is commit the new created files and run <tt>git push heroku</tt> to deploy.
-
-
-== <tt>showoff github</tt>
-
-Generates a static version of your site and puts it in a gh-pages branch for static serving on GitHub.
-
-Options are specified *after* the command.
-
-[<tt>-f, --force</tt>] force overwrite of existing Gemfile/.gems and config.ru files if they exist
-[<tt>-g, --dotgems</tt>] Use older-style .gems file instead of bundler-style Gemfile
-[<tt>-p, --password=arg</tt>] add password protection to your heroku site
-
-
-== <tt>showoff serve </tt>
-
-Serves the showoff presentation in the current directory
-
-Options are specified *after* the command.
-
-[<tt>-f, --pres_file=arg</tt>] Presentation file <i>(default: <tt>showoff.json</tt>)</i>
-[<tt>-h, --host=arg</tt>] Host or ip to run on <i>( default: <tt>localhost</tt>)</i>
-[<tt>-p, --port=arg</tt>] Port on which to run <i>( default: <tt>9090</tt>)</i>
-
-
-== <tt>showoff static name</tt>
-
-Generate static version of presentation
-
-= Printable Output
-
-To generate printable output or a PDF via your browser rendering engine of choice, simply browse to
-the <tt>/onepage</tt> view and print the page using your browser's native print function. You may
-also use a rendering engine such as PrinceXML[http://www.princexml.com] to print this page to a PDF.
-
-If your browser doesn't generate acceptable output, Showoff can produce a PDF version using the
-<tt>wkhtmltopdf</tt> rendering engine.
-
-To do this, you must install a few things first:
-
-    gem install pdfkit
-
-You'll then need to install a version of <tt>wkhtmltopdf</tt> available at the {wkhtmltopdf repo}[http://code.google.com/p/wkhtmltopdf/wiki/compilation] (or <tt>brew install wkhtmltopdf</tt> on a mac) and make sure that <tt>wkhtmltopdf</tt> is in your path:
-
-    export $PATH="/location/to/my/wkhtmltopdf/0.9.9:$PATH"
-
-
-Then restart showoff, and navigate to <tt>/pdf</tt> (e.g. http://localhost:9090/pdf) of your presentation and a PDF will be generated with the browser.
-
-= Shell Auto Completion
-
-== ZSH completion
-You can complete commands and options in ZSH, by installing a script:
-
-    mkdir -p $HOME/.zsh/Completion
-    cp script/_showoff $HOME/.zsh/Completion
-    echo 'fpath=(~/.zsh/Completion $fpath)' >> $HOME/.zshrc
-
-== <tt>bash</tt> completion
-
-You can complete commands for showoff by putting the following in your <tt>.bashrc</tt> (or whatever
-you use when starting <tt>bash</tt>):
-
-    complete -F get_showoff_commands
-    function get_showoff_commands()
-    {
-        if [ -z $2 ] ; then
-            COMPREPLY=(`showoff help -c`)
-        else
-            COMPREPLY=(`showoff help -c $2`)
-        fi
-    }
-
-You can also install that as an executable script such as <tt>/etc/bash_completion.d/showoff</tt>.
+Generate static version of presentation.
