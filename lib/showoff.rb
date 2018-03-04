@@ -64,7 +64,7 @@ class ShowOff < Sinatra::Application
     require_ruby_files
 
     # Default asset path
-    @asset_path = "./"
+    @asset_path = nil
 
     Tilt.prefer Tilt::MarukuTemplate, "markdown"
   end
@@ -433,7 +433,6 @@ class ShowOff < Sinatra::Application
   def index(static=false)
     if static
       @static = true
-      @title = ShowOffUtils.showoff_title(settings.pres_dir)
       @slides = get_slides_html(:static=>static)
       @pause_msg = ShowOffUtils.pause_msg
 
@@ -448,7 +447,6 @@ class ShowOff < Sinatra::Application
 
   def presenter(static=false)
     if static
-      @title = ShowOffUtils.showoff_title(settings.pres_dir)
       @slides = get_slides_html(:static=>static)
       @pause_msg = ShowOffUtils.pause_msg
 
@@ -510,6 +508,10 @@ class ShowOff < Sinatra::Application
   def print(static=false)
     @slides = get_slides_html(:static=>static, :toc=>true, :print=>true)
     erb :onepage
+  end
+
+  def title
+    ShowOffUtils.showoff_title(settings.pres_dir)
   end
 
   def self.do_static(what)
@@ -587,50 +589,43 @@ class ShowOff < Sinatra::Application
 
   get %r{/(?:image|file)/(.*)} do
     path = params[:captures].first
-    full_path = File.join(settings.pres_dir, path)
-    if File.exist?(full_path)
-        send_file full_path
-    else
-        raise Sinatra::NotFound
-    end
+    full_path = File.expand_path(File.join(settings.pres_dir, path))
+    raise Sinatra::NotFound unless full_path.start_with?(File.expand_path(settings.pres_dir)) && File.exist?(full_path)
+    send_file full_path
   end
 
   get '/favicon.ico' do
     ''
   end
 
-  # gawd, this whole routing scheme is bollocks
-  get %r{/([^/]*)/?([^/]*)} do
-    @title = ShowOffUtils.showoff_title(settings.pres_dir)
-    @pause_msg = ShowOffUtils.pause_msg
-    what = params[:captures].first
-    opt  = params[:captures][1]
-    what = 'index' if "" == what
-    what.sub!(/\A(index|presenter)\.html\z/, '\1')
+  get '/' do
+    index
+  end
 
-    # this hasn't been set to anything remotely interesting for a long time now
-    @asset_path = nil
+  get '/index' do
+    index
+  end
 
-    begin
-      if what == 'supplemental'
-        data = send(what, opt)
-      else
-        data = send(what)
-      end
-      if data.is_a?(File)
-        send_file data.path
-      else
-        data
-      end
-    rescue NoMethodError => e
-      @logger.warn "Invalid object #{what} requested. #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
-      raise Sinatra::NotFound
-    end
+  get '/slides' do
+    slides
+  end
+
+  get '/presenter' do
+    presenter
+  end
+
+  get '/onepage' do
+    onepage
+  end
+
+  get '/print' do
+    print
   end
 
   not_found do
     # Why does the asset path start from cwd??
     @asset_path.slice!(/^./) if @asset_path
+    @logger.warn "Not found: #{env['PATH_INFO']}"
     @env = request.env
     erb :'404'
   end
