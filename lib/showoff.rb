@@ -371,15 +371,16 @@ class ShowOff < Sinatra::Application
      inline_js(Dir.entries(File.join(File.dirname(__FILE__), '..', jses_directory)).find_all{|filename| filename.length > 2 }, jses_directory)
   end
 
+  def static_settings
+    @slides = get_slides_html
+    @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
+    @asset_path = "."
+  end
+
   def index(static=false)
     if static
       @static = true
-      @slides = get_slides_html
-
-      # Identify which languages to bundle for highlighting
-      @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
-
-      @asset_path = "."
+      static_settings
     end
 
     erb :index
@@ -387,12 +388,7 @@ class ShowOff < Sinatra::Application
 
   def presenter(static=false)
     if static
-      @slides = get_slides_html
-
-      # Identify which languages to bundle for highlighting
-      @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
-
-      @asset_path = "."
+      static_settings
     end
 
     erb :presenter
