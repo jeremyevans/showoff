@@ -595,6 +595,10 @@ class ShowOff < Sinatra::Application
     end
   end
 
+  get '/favicon.ico' do
+    ''
+  end
+
   # gawd, this whole routing scheme is bollocks
   get %r{/([^/]*)/?([^/]*)} do
     @title = ShowOffUtils.showoff_title(settings.pres_dir)
@@ -608,17 +612,15 @@ class ShowOff < Sinatra::Application
     @asset_path = nil
 
     begin
-      if (what != "favicon.ico")
-        if what == 'supplemental'
-          data = send(what, opt)
-        else
-          data = send(what)
-        end
-        if data.is_a?(File)
-          send_file data.path
-        else
-          data
-        end
+      if what == 'supplemental'
+        data = send(what, opt)
+      else
+        data = send(what)
+      end
+      if data.is_a?(File)
+        send_file data.path
+      else
+        data
       end
     rescue NoMethodError => e
       @logger.warn "Invalid object #{what} requested. #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
