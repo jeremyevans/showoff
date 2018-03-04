@@ -514,89 +514,77 @@ class ShowOff < Sinatra::Application
     end
   end
 
-   def self.do_static(what)
-      what = "index" if !what
+  def self.do_static(what)
+    what = "index" if !what
 
-      # Sinatra now aliases new to new!
-      showoff = ShowOff.new!
+    # Sinatra now aliases new to new!
+    showoff = ShowOff.new!
 
-      name = showoff.instance_variable_get(:@pres_name)
-      path = showoff.instance_variable_get(:@root_path)
-      logger = showoff.instance_variable_get(:@logger)
+    name = showoff.instance_variable_get(:@pres_name)
+    path = showoff.instance_variable_get(:@root_path)
+    logger = showoff.instance_variable_get(:@logger)
 
-      data = showoff.send(what, true)
+    data = showoff.send(what, true)
 
-      out = File.expand_path("#{path}/static")
-      # First make a directory
-      FileUtils.makedirs(out)
-      # Then write the html
-      file = File.new("#{out}/index.html", "w")
+    out = File.expand_path("#{path}/static")
+    # First make a directory
+    FileUtils.makedirs(out)
+    # Then write the html
+    file = File.new("#{out}/index.html", "w")
+    file.puts(data)
+    file.close
+    if what == 'index'
+      data = showoff.presenter(true)
+      file = File.new("#{out}/presenter.html", "w")
       file.puts(data)
       file.close
-      if what == 'index'
-        data = showoff.presenter(true)
-        file = File.new("#{out}/presenter.html", "w")
-        file.puts(data)
-        file.close
+    end
+    # Now copy all the js and css
+    my_path = File.join( File.dirname(__FILE__), '..', 'public')
+    ["js", "css"].each { |dir|
+      FileUtils.copy_entry("#{my_path}/#{dir}", "#{out}/#{dir}")
+    }
+    # And copy the directory
+    Dir.glob("#{my_path}/#{name}/*").each { |subpath|
+      base = File.basename(subpath)
+      next if "static" == base
+      next unless File.directory?(subpath) || base.match(/\.(css|js)$/)
+      FileUtils.copy_entry(subpath, "#{out}/#{base}")
+    }
+
+    # Set up file dir
+    file_dir = File.join(out, 'file')
+    FileUtils.makedirs(file_dir)
+    pres_dir = showoff.settings.pres_dir
+
+    # ..., copy all user-defined styles, javascript, images, and fonts
+    Dir.glob("#{pres_dir}/*.{css,js,png,jpg,svg,gif,ttf}").each { |path|
+      FileUtils.copy(path, File.join(file_dir, File.basename(path)))
+    }
+
+    # ... and copy all needed image files
+    [/img src=[\"\'].\/file\/(.*?)[\"\']/, /style=[\"\']background: url\(\'file\/(.*?)'/].each do |regex|
+      data.scan(regex).flatten.each do |path|
+        path = path.gsub('../file/', '')
+        dir = File.dirname(path)
+        FileUtils.makedirs(File.join(file_dir, dir))
+        FileUtils.copy(File.join(pres_dir, path), File.join(file_dir, path))
       end
-      # Now copy all the js and css
-      my_path = File.join( File.dirname(__FILE__), '..', 'public')
-      ["js", "css"].each { |dir|
-        FileUtils.copy_entry("#{my_path}/#{dir}", "#{out}/#{dir}")
-      }
-      # And copy the directory
-      Dir.glob("#{my_path}/#{name}/*").each { |subpath|
-        base = File.basename(subpath)
-        next if "static" == base
-        next unless File.directory?(subpath) || base.match(/\.(css|js)$/)
-        FileUtils.copy_entry(subpath, "#{out}/#{base}")
-      }
-
-      # Set up file dir
-      file_dir = File.join(out, 'file')
-      FileUtils.makedirs(file_dir)
-      pres_dir = showoff.settings.pres_dir
-
-      # ..., copy all user-defined styles, javascript, images, and fonts
-      Dir.glob("#{pres_dir}/*.{css,js,png,jpg,svg,gif,ttf}").each { |path|
-        FileUtils.copy(path, File.join(file_dir, File.basename(path)))
-      }
-
-      # ... and copy all needed image files
-      [/img src=[\"\'].\/file\/(.*?)[\"\']/, /style=[\"\']background: url\(\'file\/(.*?)'/].each do |regex|
-        data.scan(regex).flatten.each do |path|
-          path = path.gsub('../file/', '')
+    end
+    # copy images from css too
+    Dir.glob("#{pres_dir}/*.css").each do |css_path|
+      File.open(css_path) do |file|
+        data = file.read
+        data.scan(/url\([\"\']?(?!https?:\/\/)(.*?)[\"\']?\)/).flatten.each do |path|
+          path.gsub!(/(\#.*)$/, '') # get rid of the anchor
+          path.gsub!(/(\?.*)$/, '') # get rid of the query
+          logger.debug path
           dir = File.dirname(path)
           FileUtils.makedirs(File.join(file_dir, dir))
           FileUtils.copy(File.join(pres_dir, path), File.join(file_dir, path))
         end
       end
-      # copy images from css too
-      Dir.glob("#{pres_dir}/*.css").each do |css_path|
-        File.open(css_path) do |file|
-          data = file.read
-          data.scan(/url\([\"\']?(?!https?:\/\/)(.*?)[\"\']?\)/).flatten.each do |path|
-            path.gsub!(/(\#.*)$/, '') # get rid of the anchor
-            path.gsub!(/(\?.*)$/, '') # get rid of the query
-            logger.debug path
-            dir = File.dirname(path)
-            FileUtils.makedirs(File.join(file_dir, dir))
-            FileUtils.copy(File.join(pres_dir, path), File.join(file_dir, path))
-          end
-        end
-      end
     end
-
-   def eval_ruby code
-     eval(code).to_s
-   rescue => e
-     e.message
-   end
-
-  get '/eval_ruby' do
-    return eval_ruby(params[:code]) if ENV['SHOWOFF_EVAL_RUBY']
-
-    return "Ruby Evaluation is off. To turn it on set ENV['SHOWOFF_EVAL_RUBY']"
   end
 
   get %r{/(?:image|file)/(.*)} do
