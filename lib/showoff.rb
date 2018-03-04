@@ -129,7 +129,7 @@ class ShowOff < Sinatra::Application
     end
   end
 
-  def process_markdown(name, content, opts={:static=>false, :print=>false, :toc=>false, :supplemental=>nil})
+  def process_markdown(name, content, opts={:static=>false, :print=>false, :toc=>false})
     if settings.encoding and content.respond_to?(:force_encoding)
       content.force_encoding(settings.encoding)
     end
@@ -165,15 +165,6 @@ class ShowOff < Sinatra::Application
       if slide.classes.include? 'subsection'
         @section_major += 1
         @section_minor = 0
-      end
-
-      if opts[:supplemental]
-        # if we're looking for supplemental material, only include the content we want
-        next unless slide.classes.include? 'supplemental'
-        next unless slide.classes.include? opts[:supplemental]
-      else
-        # otherwise just skip all supplemental material completely
-        next if slide.classes.include? 'supplemental'
       end
 
       unless opts[:toc]
