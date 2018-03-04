@@ -21,7 +21,6 @@ Gem::Specification.new do |s|
   s.add_dependency      "sinatra", ">= 2"
   s.add_dependency      "json"
   s.add_dependency      "gli",">= 1.3.2"
-  s.add_dependency      "parslet"
   s.add_dependency      "htmlentities"
   s.add_dependency      "maruku"
   s.add_dependency      "nokogiri"
