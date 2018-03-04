@@ -3,9 +3,6 @@
 require_relative '../lib/showoff'
 
 case command = ARGV.shift
-when '-v'
-  require 'showoff/version'
-  puts SHOWOFF_VERSION
 when 'create'
   dirname = ARGV.shift
   ShowOffUtils.create(dirname)
@@ -20,5 +17,5 @@ when 'serve'
 when 'static'
   ShowOff.do_static(nil)
 else
-  puts "usage: showoff (-v|create $dirname|serve $host $port|static)"
+  puts "usage: showoff (create $dirname|serve $host $port|static)"
 end
