@@ -46,16 +46,10 @@ web browser. The following URL paths are available for use by you and your audie
   useful when a viewer has an older browser than cannot handle the transitions properly
   or is a luddite ;-) and wants to scroll rather than page.
 
-[http://localhost:9090/onepage]
+[http://localhost:9090/print]
   This will generate printable version of your presentation, including any slides that
   were tagged as _printonly_. This view can be printed directly from the browser, or
   processed with any HTML-to-$thing engine.
-
-[http://localhost:9090/supplemental/$type-name]
-  Showoff has the ability to include supplemental material that are defined by special
-  slide types. This URL path will allow you and/or the audience to retrieve the
-  supplemental materials. This is most often used to generate printed material ahead
-  of time rather than during the presentation itself.
 
 == Presenter View Tools
 
