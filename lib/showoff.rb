@@ -522,7 +522,6 @@ class ShowOff < Sinatra::Application
       what = "index" if !what
 
       # Sinatra now aliases new to new!
-      # https://github.com/sinatra/sinatra/blob/v1.3.3/lib/sinatra/base.rb#L1369
       showoff = ShowOff.new!
 
       name = showoff.instance_variable_get(:@pres_name)
@@ -598,26 +597,6 @@ class ShowOff < Sinatra::Application
      e.message
    end
 
-  # Basic auth boilerplate
-  def protected!
-    unless authorized?
-      response['WWW-Authenticate'] = %(Basic realm="#{@title}: Protected Area")
-      throw(:halt, [401, "Not authorized\n"])
-    end
-  end
-
-  def authorized?
-    if not settings.showoff_config.has_key? 'password'
-      # if no password is set, then default to allowing access to localhost
-      request.env['REMOTE_HOST'] == 'localhost' or request.ip == '127.0.0.1'
-    else
-      auth   ||= Rack::Auth::Basic::Request.new(request.env)
-      user     = settings.showoff_config['user'] || ''
-      password = settings.showoff_config['password']
-      auth.provided? && auth.basic? && auth.credentials && auth.credentials == [user, password]
-    end
-  end
-
   def guid
     # this is a terrifyingly simple GUID generator
     (0..15).to_a.map{|a| rand(16).to_s(16)}.join
@@ -651,10 +630,6 @@ class ShowOff < Sinatra::Application
     opt  = params[:captures][1]
     what = 'index' if "" == what
     what.sub!(/\A(index|presenter)\.html\z/, '\1')
-
-    if settings.showoff_config.has_key? 'protected'
-      protected! if settings.showoff_config['protected'].include? what
-    end
 
     # this hasn't been set to anything remotely interesting for a long time now
     @asset_path = nil
