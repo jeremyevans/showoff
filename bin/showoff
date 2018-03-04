@@ -20,7 +20,7 @@ when 'serve'
                 :port      => port,
                 :pres_file => 'showoff.json',
                 :pres_dir  => nil,
-                :verbose   => true,
+                :verbose   => false,
                 :bind      => host
 when 'static'
   ShowOff.do_static(nil)
