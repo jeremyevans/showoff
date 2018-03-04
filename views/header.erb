@@ -12,7 +12,7 @@
 
   <link rel="stylesheet" href="<%= @asset_path %>/css/showoff.css" type="text/css"/>
 
-  <% if size = settings.showoff_config['size'] %>
+  <% if size = SHOWOFF_CONFIG['size'] %>
     <% width, height =  size.split('x') %>
     <style type="text/css">
       @media screen {
@@ -57,7 +57,7 @@
   <% end %>
 
   <script type="text/javascript">
-  <% if settings.showoff_config['vertical-center'] %>
+  <% if SHOWOFF_CONFIG['vertical-center'] %>
     verticalCenterSlides = true;
   <% end %>
   $(function(){

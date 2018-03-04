@@ -1,90 +1,50 @@
-require 'sinatra/base'
+require 'roda'
 require 'json'
 require 'nokogiri'
 require 'fileutils'
 require 'logger'
 require 'maruku'
+require 'tilt'
+
+Tilt.prefer Tilt::MarukuTemplate, "markdown"
 
 require_relative "showoff_utils"
 
-require 'tilt'
+class ShowOff < Roda
+  use Rack::CommonLogger
 
-class ShowOff < Sinatra::Application
-  set :views, File.dirname(__FILE__) + '/../views'
-  set :public_folder, File.dirname(__FILE__) + '/../public'
+  plugin :render, :views=>(File.dirname(__FILE__) + '/../views')
+  plugin :public, :root=>(File.dirname(__FILE__) + '/../public')
+  plugin :sinatra_helpers
 
-  set :verbose, false
-  set :pres_dir, '.'
-  set :pres_file, 'showoff.json'
-  set :page_size, "Letter"
-  set :pres_template, nil
-  set :showoff_config, {}
-  set :encoding, nil
+  LOGGER = Logger.new(STDOUT)
+  LOGGER.formatter = proc { |severity,datetime,progname,msg| "#{progname} #{msg}\n" }
+  LOGGER.level = Logger::WARN
 
-  def initialize(app=nil)
-    super(app)
-    @logger = Logger.new(STDOUT)
-    @logger.formatter = proc { |severity,datetime,progname,msg| "#{progname} #{msg}\n" }
-    @logger.level = settings.verbose ? Logger::DEBUG : Logger::WARN
+  PRESENTATION_DIR = File.expand_path(Dir.pwd)
+  PRESENTATION_NAME = File.basename(PRESENTATION_DIR)
+  ROOT_PATH = '.'.freeze
+  SHOWOFF_CONFIG = JSON.parse(File.read(ShowOffUtils.presentation_config_file))
 
-    dir = File.expand_path(File.join(File.dirname(__FILE__), '..'))
-    @logger.debug(dir)
-
-    showoff_dir = File.expand_path(File.join(File.dirname(__FILE__), '..'))
-    settings.pres_dir ||= Dir.pwd
-    @root_path = "."
-
-    settings.pres_dir = File.expand_path(settings.pres_dir)
-    if (settings.pres_file)
-      ShowOffUtils.presentation_config_file = settings.pres_file
-    end
-
-    # Load configuration for page size and template from the
-    # configuration JSON file
-    if File.exists?(ShowOffUtils.presentation_config_file)
-      showoff_json = JSON.parse(File.read(ShowOffUtils.presentation_config_file))
-      settings.showoff_config = showoff_json
-
-      # Set options for encoding, template and page size
-      settings.encoding = showoff_json["encoding"]
-      settings.page_size = showoff_json["page-size"] || "Letter"
-      settings.pres_template = showoff_json["templates"]
-    end
-
-    @logger.debug settings.pres_template
-
-    @logger.debug settings.pres_dir
-    @pres_name = settings.pres_dir.split('/').pop
-    Dir.glob("#{settings.pres_dir}/*.rb").map { |path| require path }
-
-    # Default asset path
-    @asset_path = nil
-
-    Tilt.prefer Tilt::MarukuTemplate, "markdown"
-  end
-
-  def self.pres_dir_current
-    opt = {:pres_dir => Dir.pwd}
-    ShowOff.set opt
-  end
+  Dir.glob("#{PRESENTATION_DIR}/*.rb").map { |path| require path }
 
   def load_section_files(section)
-    section = File.join(settings.pres_dir, section)
+    section = File.join(PRESENTATION_DIR, section)
     files = if File.directory? section
       Dir.glob("#{section}/**/*").sort
     else
       [section]
     end
-    @logger.debug files
+    LOGGER.debug files
     files
   end
 
   def css_files
-    Dir.glob("#{settings.pres_dir}/*.css").map { |path| File.basename(path) }
+    Dir.glob("#{PRESENTATION_DIR}/*.css").map { |path| File.basename(path) }
   end
 
   def js_files
-    Dir.glob("#{settings.pres_dir}/*.js").map { |path| File.basename(path) }
+    Dir.glob("#{PRESENTATION_DIR}/*.js").map { |path| File.basename(path) }
   end
 
   class Slide
@@ -114,17 +74,13 @@ class ShowOff < Sinatra::Application
   end
 
   def process_markdown(name, content, opts={:toc=>false})
-    if settings.encoding and content.respond_to?(:force_encoding)
-      content.force_encoding(settings.encoding)
-    end
-
     # if there are no !SLIDE markers, then make every H1 define a new slide
     unless content =~ /^\<?!SLIDE/m
       content = content.gsub(/^# /m, "<!SLIDE>\n# ")
     end
 
     lines = content.split("\n")
-    @logger.debug "#{name}: #{lines.length} lines"
+    LOGGER.debug "#{name}: #{lines.length} lines"
     slides = []
     slides << (slide = Slide.new)
     until lines.empty?
@@ -165,23 +121,13 @@ class ShowOff < Sinatra::Application
       id = nil
       content_classes.delete_if { |x| x =~ /^#([\w-]+)/ && id = $1 }
       id = name unless id
-      @logger.debug "id: #{id}" if id
-      @logger.debug "classes: #{content_classes.inspect}"
-      @logger.debug "transition: #{transition}"
-      @logger.debug "tpl: #{slide.tpl} " if slide.tpl
-      @logger.debug "bg: #{slide.bg}" if slide.bg
-
+      LOGGER.debug "id: #{id}" if id
+      LOGGER.debug "classes: #{content_classes.inspect}"
+      LOGGER.debug "transition: #{transition}"
+      LOGGER.debug "tpl: #{slide.tpl} " if slide.tpl
+      LOGGER.debug "bg: #{slide.bg}" if slide.bg
 
       template = "~~~CONTENT~~~"
-      # Template handling
-      if settings.pres_template
-        # We allow specifying a new template even when default is
-        # not given.
-        if settings.pres_template.include?(slide.tpl) and
-            File.exists?(settings.pres_template[slide.tpl])
-          template = File.open(settings.pres_template[slide.tpl], "r").read()
-        end
-      end
 
       # create html for the slide
       classes = content_classes.join(' ')
@@ -296,7 +242,7 @@ class ShowOff < Sinatra::Application
     @section_major = 0
     @section_minor = 0
 
-    sections = ShowOffUtils.showoff_sections(settings.pres_dir, @logger)
+    sections = ShowOffUtils.showoff_sections(PRESENTATION_DIR, LOGGER)
     files = []
     if sections
       data = ''
@@ -310,7 +256,7 @@ class ShowOff < Sinatra::Application
           files = files.flatten
           files = files.select { |f| f =~ /.md$/ }
           files.each do |f|
-            fname = f.gsub(settings.pres_dir + '/', '').gsub('.md', '')
+            fname = f.gsub(PRESENTATION_DIR + '/', '').gsub('.md', '')
             data << process_markdown(fname, File.read(f), opts)
           end
         end
@@ -325,7 +271,7 @@ class ShowOff < Sinatra::Application
       if pre
         css_file = File.join(File.dirname(__FILE__), '..', pre, css_file)
       else
-        css_file = File.join(settings.pres_dir, css_file)
+        css_file = File.join(PRESENTATION_DIR, css_file)
       end
       css_content += File.read(css_file)
     end
@@ -339,7 +285,7 @@ class ShowOff < Sinatra::Application
       if pre
         js_file = File.join(File.dirname(__FILE__), '..', pre, js_file)
       else
-        js_file = File.join(settings.pres_dir, js_file)
+        js_file = File.join(PRESENTATION_DIR, js_file)
       end
 
       begin
@@ -369,7 +315,7 @@ class ShowOff < Sinatra::Application
       static_settings
     end
 
-    erb :index
+    render :index
   end
 
   def presenter(static=false)
@@ -377,7 +323,7 @@ class ShowOff < Sinatra::Application
       static_settings
     end
 
-    erb :presenter
+    render :presenter
   end
 
   def clean_link(href)
@@ -408,10 +354,11 @@ class ShowOff < Sinatra::Application
       assets << href if href
     end
 
-    css = Dir.glob("#{settings.public_folder}/**/*.css").map { |path| path.gsub(settings.public_folder + '/', '') }
+    public_root = opts[:public_root]
+    css = Dir.glob("#{public_root}/**/*.css").map { |path| path.gsub(public_root + '/', '') }
     assets << css
 
-    js = Dir.glob("#{settings.public_folder}/**/*.js").map { |path| path.gsub(settings.public_folder + '/', '') }
+    js = Dir.glob("#{public_root}/**/*.js").map { |path| path.gsub(public_root + '/', '') }
     assets << js
 
     assets.uniq.join("\n")
@@ -423,22 +370,22 @@ class ShowOff < Sinatra::Application
 
   def onepage
     @slides = get_slides_html(:toc=>true)
-    erb :onepage
+    render :onepage
   end
 
   def title
-    ShowOffUtils.showoff_title(settings.pres_dir)
+    ShowOffUtils.showoff_title()
   end
 
   def self.do_static(what)
     what = "index" if !what
 
     # Sinatra now aliases new to new!
-    showoff = ShowOff.new!
+    showoff = new({})
 
-    name = showoff.instance_variable_get(:@pres_name)
-    path = showoff.instance_variable_get(:@root_path)
-    logger = showoff.instance_variable_get(:@logger)
+    name = PRESENTATION_NAME
+    path = ROOT_PATH
+    logger = LOGGER
 
     data = showoff.send(what, true)
 
@@ -471,7 +418,7 @@ class ShowOff < Sinatra::Application
     # Set up file dir
     file_dir = File.join(out, 'file')
     FileUtils.makedirs(file_dir)
-    pres_dir = showoff.settings.pres_dir
+    pres_dir = PRESENTATION_DIR
 
     # ..., copy all user-defined styles, javascript, images, and fonts
     Dir.glob("#{pres_dir}/*.{css,js,png,jpg,svg,gif,ttf}").each { |path|
@@ -503,46 +450,39 @@ class ShowOff < Sinatra::Application
     end
   end
 
-  get %r{/(?:image|file)/(.*)} do
-    path = params[:captures].first
-    full_path = File.expand_path(File.join(settings.pres_dir, path))
-    raise Sinatra::NotFound unless full_path.start_with?(File.expand_path(settings.pres_dir)) && File.exist?(full_path)
-    send_file full_path
+  route do |r|
+    r.get do
+      r.public
+
+      r.is 'file', String do |path|
+        pres_dir = PRESENTATION_DIR
+        full_path = File.expand_path(File.join(pres_dir, path))
+        unless full_path.start_with?(File.expand_path(pres_dir)) && File.exist?(full_path)
+          response.status = 404
+          r.halt
+        end
+        send_file full_path
+      end
+
+      r.is 'favicon.ico' do
+        ''
+      end
+
+      r.is ['', 'index', 'index.html'] do
+        index
+      end
+
+      r.is ['slides', 'presenter', 'onepage'] do |template|
+        send(template)
+      end
+    end
   end
 
-  get '/favicon.ico' do
-    ''
-  end
-
-  get '/' do
-    index
-  end
-
-  get '/index' do
-    index
-  end
-
-  get '/index.html' do
-    index
-  end
-
-  get '/slides' do
-    slides
-  end
-
-  get '/presenter' do
-    presenter
-  end
-
-  get '/onepage' do
-    onepage
-  end
-
-  not_found do
+  plugin :not_found do
     # Why does the asset path start from cwd??
     @asset_path.slice!(/^./) if @asset_path
-    @logger.warn "Not found: #{env['PATH_INFO']}"
+    LOGGER.warn "Not found: #{env['PATH_INFO']}"
     @env = request.env
-    erb :'404'
+    render :'404'
   end
 end

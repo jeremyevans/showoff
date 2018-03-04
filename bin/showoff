@@ -16,12 +16,7 @@ when 'serve'
   url  = "http://#{host}:#{port}"
   puts "View URL: #{url}"
   puts "Presenter URL: #{url}/presenter"
-  ShowOff.run!  :host      => host,
-                :port      => port,
-                :pres_file => 'showoff.json',
-                :pres_dir  => nil,
-                :verbose   => false,
-                :bind      => host
+  Rack::Server.start(:app=>ShowOff.app, :Host => host, :Port => port)
 when 'static'
   ShowOff.do_static(nil)
 else

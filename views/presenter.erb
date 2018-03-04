@@ -2,11 +2,11 @@
 
 <html lang="en">
 <head>
-  <%= erb :header %>
+  <%= render :header %>
   <link rel="stylesheet" href="<%= @asset_path %>/css/presenter.css" type="text/css"/>
   <script type="text/javascript" src="<%= @asset_path %>/js/presenter.js"></script>
 
-  <% if size = settings.showoff_config['size'] %>
+  <% if size = SHOWOFF_CONFIG['size'] %>
     <style type="text/css">
       #preview div.zoomed { zoom: <%= 92500/(size.split('x').first.to_i) %>%;}
     </style>

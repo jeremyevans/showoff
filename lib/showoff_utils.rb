@@ -23,11 +23,7 @@ class ShowOffUtils
   end
 
   def self.presentation_config_file
-    @presentation_config_file ||= 'showoff.json'
-  end
-
-  def self.presentation_config_file=(filename)
-    @presentation_config_file = filename
+    'showoff.json'
   end
 
   def self.create(dirname,create_samples=false,dir='one')
