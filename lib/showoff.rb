@@ -97,12 +97,10 @@ class ShowOff < Sinatra::Application
     Dir.glob("#{settings.pres_dir}/*.js").map { |path| File.basename(path) }
   end
 
-
   def preshow_files
     Dir.glob("#{settings.pres_dir}/_preshow/*").map { |path| File.basename(path) }.to_json
   end
 
-  # todo: move more behavior into this class
   class Slide
     attr_reader :classes, :text, :tpl, :bg
     def initialize( context = "")
@@ -129,7 +127,7 @@ class ShowOff < Sinatra::Application
     end
   end
 
-  def process_markdown(name, content, opts={:static=>false, :print=>false, :toc=>false})
+  def process_markdown(name, content, opts={:print=>false, :toc=>false})
     if settings.encoding and content.respond_to?(:force_encoding)
       content.force_encoding(settings.encoding)
     end
@@ -139,7 +137,6 @@ class ShowOff < Sinatra::Application
       content = content.gsub(/^# /m, "<!SLIDE>\n# ")
     end
 
-    # todo: unit test
     lines = content.split("\n")
     @logger.debug "#{name}: #{lines.length} lines"
     slides = []
@@ -228,7 +225,7 @@ class ShowOff < Sinatra::Application
       sl = Tilt[:markdown].new(nil, nil, {}) { sl }.render
       sl = update_p_classes(sl)
       sl = update_notes(sl)
-      sl = update_image_paths(name, sl, opts)
+      sl = update_image_paths(name, sl)
 
       content += sl
       content += "</div>\n"
@@ -287,11 +284,11 @@ class ShowOff < Sinatra::Application
     doc.to_html
   end
 
-  def update_image_paths(path, slide, opts={:static=>false})
+  def update_image_paths(path, slide)
     paths = path.split('/')
     paths.pop
     path = paths.join('/')
-    replacement_prefix = opts[:static] ?  %(img src="./file/#{path}) : %(img src="#{@asset_path}image/#{path})
+    replacement_prefix = %(img src="./file/#{path})
     slide.gsub(/img src=[\"\'](?!https?:\/\/)([^\/].*?)[\"\']/) do |s|
       img_path = File.join(path, $1)
       %(#{replacement_prefix}/#{$1}")
@@ -316,7 +313,7 @@ class ShowOff < Sinatra::Application
     html.root.to_s
   end
 
-  def get_slides_html(opts={:static=>false, :toc=>false, :supplemental=>nil})
+  def get_slides_html(opts={:toc=>false, :supplemental=>nil})
     @slide_count   = 0
     @section_major = 0
     @section_minor = 0
@@ -385,7 +382,7 @@ class ShowOff < Sinatra::Application
   def index(static=false)
     if static
       @static = true
-      @slides = get_slides_html(:static=>static)
+      @slides = get_slides_html
 
       # Identify which languages to bundle for highlighting
       @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
@@ -398,7 +395,7 @@ class ShowOff < Sinatra::Application
 
   def presenter(static=false)
     if static
-      @slides = get_slides_html(:static=>static)
+      @slides = get_slides_html
 
       # Identify which languages to bundle for highlighting
       @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
@@ -446,17 +443,17 @@ class ShowOff < Sinatra::Application
     assets.uniq.join("\n")
   end
 
-  def slides(static=false)
-    get_slides_html(:static=>static)
+  def slides
+    get_slides_html
   end
 
-  def onepage(static=false)
-    @slides = get_slides_html(:static=>static, :toc=>true)
+  def onepage
+    @slides = get_slides_html(:toc=>true)
     erb :onepage
   end
 
-  def print(static=false)
-    @slides = get_slides_html(:static=>static, :toc=>true, :print=>true)
+  def print
+    @slides = get_slides_html(:toc=>true, :print=>true)
     erb :onepage
   end
 
