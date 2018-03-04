@@ -565,6 +565,10 @@ class ShowOff < Sinatra::Application
     index
   end
 
+  get '/index.html' do
+    index
+  end
+
   get '/slides' do
     slides
   end
