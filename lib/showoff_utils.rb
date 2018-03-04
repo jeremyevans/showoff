@@ -1,5 +1,4 @@
 class ShowOffUtils
-
   # Helper method to parse a comma separated options string and stores
   # the result in a dictionrary
   #
@@ -31,7 +30,7 @@ class ShowOffUtils
     @presentation_config_file = filename
   end
 
-  def self.create(dirname,create_samples,dir='one')
+  def self.create(dirname,create_samples=false,dir='one')
     Dir.mkdir(dirname) if !File.exists?(dirname)
     Dir.chdir(dirname) do
       if create_samples
@@ -50,142 +49,6 @@ class ShowOffUtils
         f.puts "{ \"name\": \"My Preso\", \"sections\": [ {\"section\":\"#{dir}\"} ]}"
       end
     end
-  end
-
-  HEROKU_GEMS_FILE = '.gems'
-  HEROKU_BUNDLER_GEMS_FILE = 'Gemfile'
-  HEROKU_CONFIG_FILE = 'config.ru'
-
-	# Setup presentation to run on Heroku
-  #
-  # name         - String containing heroku name
-  # force        - boolean if .gems/Gemfile and config.ru should be overwritten if they don't exist
-  # password     - String containing password to protect your heroku site; nil means no password protection
-  # use_dot_gems - boolean that, if true, indicates we should use the old, deprecated .gems file instead of Bundler
-  def self.heroku(name, force = false, password = nil, use_dot_gems = false)
-    modified_something = false
-
-    if use_dot_gems
-      modified_something = create_gems_file(HEROKU_GEMS_FILE,
-                                            !password.nil?,
-                                            force,
-                                            lambda{ |gem| gem })
-    else
-      modified_something = create_gems_file(HEROKU_BUNDLER_GEMS_FILE,
-                                            !password.nil?,
-                                            force,
-                                            lambda{ |gem| "gem '#{gem}'" },
-                                            lambda{ "source :rubygems" })
-    end
-
-    create_file_if_needed(HEROKU_CONFIG_FILE,force) do |file|
-      modified_something = true
-      file.puts 'require "showoff"'
-      if password.nil?
-        file.puts 'run ShowOff.new'
-      else
-        file.puts 'require "rack"'
-        file.puts 'showoff_app = ShowOff.new'
-        file.puts 'protected_showoff = Rack::Auth::Basic.new(showoff_app) do |username, password|'
-        file.puts	"\tpassword == '#{password}'"
-        file.puts 'end'
-        file.puts 'run protected_showoff'
-      end
-    end
-
-    modified_something
-  end
-
-  # generate a static version of the site into the gh-pages branch
-  def self.github
-    ShowOff.do_static(nil)
-    `git add static`
-    sha = `git write-tree`.chomp
-    tree_sha = `git rev-parse #{sha}:static`.chomp
-    `git read-tree HEAD`  # reset staging to last-commit
-    ghp_sha = `git rev-parse gh-pages 2>/dev/null`.chomp
-    extra = ghp_sha != 'gh-pages' ? "-p #{ghp_sha}" : ''
-    commit_sha = `echo 'static presentation' | git commit-tree #{tree_sha} #{extra}`.chomp
-    `git update-ref refs/heads/gh-pages #{commit_sha}`
-  end
-
-  # Makes a slide as a string.
-  # [title] title of the slide
-  # [classes] any "classes" to include, such as 'smaller', 'transition', etc.
-  # [content] slide content.  Currently, if this is an array, it will make a bullet list.  Otherwise
-  #           the string value of this will be put in the slide as-is
-  def self.make_slide(title,classes="",content=nil)
-    slide = "!SLIDE #{classes}\n"
-    slide << "# #{title} #\n"
-    slide << "\n"
-    if content
-      if content.kind_of? Array
-        content.each { |x| slide << "* #{x.to_s}\n" }
-      else
-        slide << content.to_s
-      end
-    end
-    slide
-  end
-
-  TYPES = {
-    :default => lambda { |t,size,source,type| make_slide(t,"#{size} #{type}",source) },
-    'title' => lambda { |t,size,dontcare| make_slide(t,size) },
-    'bullets' => lambda { |t,size,dontcare| make_slide(t,"#{size} bullets incremental",["bullets","go","here"])},
-    'smbullets' => lambda { |t,size,dontcare| make_slide(t,"#{size} smbullets incremental",["bullets","go","here","and","here"])},
-    'code' => lambda { |t,size,src| make_slide(t,size,blank?(src) ? "    @@@ Ruby\n    code_here()" : src) },
-    'commandline' => lambda { |t,size,dontcare| make_slide(t,"#{size} commandline","    $ command here\n    output here")},
-    'full-page' => lambda { |t,size,dontcare| make_slide(t,"#{size} full-page","![Image Description](image/ref.png)")},
-  }
-
-
-  # Adds a new slide to a given dir, giving it a number such that it falls after all slides
-  # in that dir.
-  # Options are:
-  # [:dir] - dir where we put the slide (if omitted, slide is output to $stdout)
-  # [:name] - name of the file, without the number prefix. (if omitted, a default is used)
-  # [:title] - title in the slide.  If not specified the source file name is
-  #            used.  If THAT is not specified, uses the value of +:name+.  If THAT is not
-  #            specified, a suitable default is used
-  # [:code] - path to a source file to use as content (force :type to be 'code')
-  # [:number] - true if numbering should be done, false if not
-  # [:type] - the type of slide to create
-  def self.add_slide(options)
-
-    add_new_dir(options[:dir]) if options[:dir] && !File.exists?(options[:dir])
-
-    options[:type] = 'code' if options[:code]
-
-    title = determine_title(options[:title],options[:name],options[:code])
-
-    options[:name] = 'new_slide' if !options[:name]
-
-    size,source = determine_size_and_source(options[:code])
-    type = options[:type] || :default
-    slide = TYPES[type].call(title,size,source)
-
-    if options[:dir]
-      filename = determine_filename(options[:dir],options[:name],options[:number])
-      write_file(filename,slide)
-    else
-      puts slide
-      puts
-    end
-
-  end
-
-  # Adds the given directory to this presentation, appending it to
-  # the end of showoff.json as well
-  def self.add_new_dir(dir)
-    puts "Creating #{dir}..."
-    Dir.mkdir dir
-
-    showoff_json = JSON.parse(File.read(ShowOffUtils.presentation_config_file))
-    showoff_json["section"] = dir
-    File.open(ShowOffUtils.presentation_config_file,'w') do |file|
-      file.puts JSON.generate(showoff_json)
-    end
-    puts "#{ShowOffUtils.presentation_config_file} updated"
   end
 
   def self.blank?(string)
@@ -341,53 +204,4 @@ class ShowOffUtils
     ext = File.extname(source_file).gsub(/^\./,'')
     EXTENSIONS[ext] || ext
   end
-
-  REQUIRED_GEMS = %w(redcarpet showoff heroku)
-
-  # Creates the file that lists the gems for heroku
-  #
-  # filename  - String name of the file
-  # password  - Boolean to indicate if we are setting a password
-  # force     - Boolean to indicate if we should overwrite the existing file
-  # formatter - Proc/lambda that takes 1 argument, the gem name, and formats it for the file
-  #             This is so we can support both the old .gems and the new bundler Gemfile
-  # header    - Proc/lambda that creates any header information in the file
-  #
-  # Returns a boolean indicating that we had to create the file or not.
-  def self.create_gems_file(filename,password,force,formatter,header=nil)
-    create_file_if_needed(filename,force) do |file|
-      file.puts header.call unless header.nil?
-      REQUIRED_GEMS.each { |gem| file.puts formatter.call(gem) }
-      file.puts formatter.call("rack") if password
-    end
-  end
-
-  # Creates the given filename if it doesn't exist or if force is true
-  #
-  # filename - String name of the file to create
-  # force    - if true, the file will always be created, if false, only create
-  #            if it's not there
-  # block    - takes a block that will be given the file handle to write
-  #            data into the file IF it's being created
-  #
-  # Examples
-  #
-  #   create_file_if_needed("config.ru",false) do |file|
-  #     file.puts "require 'showoff'"
-  #     file.puts "run ShowOff.new"
-  #   end
-  #
-  # Returns true if the file was created
-  def self.create_file_if_needed(filename,force)
-    if !File.exists?(filename) || force
-      File.open(filename, 'w+') do |f|
-        yield f
-      end
-      true
-    else
-      puts "#{filename} exists; not overwriting (see showoff help heroku)"
-      false
-    end
-  end
 end
-

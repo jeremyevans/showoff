@@ -1,4 +1,3 @@
-require 'rubygems'
 require 'sinatra/base'
 require 'json'
 require 'nokogiri'
@@ -706,7 +705,7 @@ class ShowOff < Sinatra::Application
     return "Ruby Evaluation is off. To turn it on set ENV['SHOWOFF_EVAL_RUBY']"
   end
 
-  get %r{(?:image|file)/(.*)} do
+  get %r{/(?:image|file)/(.*)} do
     path = params[:captures].first
     full_path = File.join(settings.pres_dir, path)
     if File.exist?(full_path)
@@ -746,7 +745,7 @@ class ShowOff < Sinatra::Application
         end
       end
     rescue NoMethodError => e
-      @logger.warn "Invalid object #{what} requested."
+      @logger.warn "Invalid object #{what} requested. #{e.class}: #{e.message}\n#{e.backtrace.join("\n")}"
       raise Sinatra::NotFound
     end
   end
