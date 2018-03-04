@@ -236,7 +236,7 @@ class ShowOff < Sinatra::Application
       sl = template.gsub(/~~~CONTENT~~~/, slide.text)
       sl = Tilt[:markdown].new(nil, nil, {}) { sl }.render
       sl = update_p_classes(sl)
-      sl = update_special_content(sl, @slide_count, name) # TODO: deprecated
+      sl = update_notes(sl)
       sl = update_image_paths(name, sl, opts)
 
       content += sl
@@ -280,60 +280,21 @@ class ShowOff < Sinatra::Application
     content
   end
 
-  # find any lines that start with a <p>.(something) and turn them into <p class="something">
   def update_p_classes(markdown)
     markdown.gsub(/<p>\.(.*?) /, '<p class="\1">')
   end
 
-  # TODO: deprecated
-  def update_special_content(content, seq, name)
+  def update_notes(content)
     doc = Nokogiri::HTML::DocumentFragment.parse(content)
-    %w[notes handouts instructor solguide].each { |mark|  update_special_content_mark(doc, mark) }
-    update_download_links(doc, seq, name)
-
-    # TODO: what the bloody hell. Figure out how to either make Nokogiri output closed
-    # tags or figure out how to get its XML output to quit adding gratuitious spaces.
-    doc.to_html.gsub(/(<img [^>]*)>/, '\1 />')
-  end
-
-  # TODO: deprecated
-  def update_special_content_mark(doc, mark)
-    container = doc.css("p.#{mark}").first
-    return unless container
-
-    # only allow localhost to print the instructor guide
-    if mark == 'instructor' and request.env['REMOTE_HOST'] != 'localhost'
-      container.remove
-    else
+    if container = doc.css("p.notes").first
       raw      = container.inner_html
-      fixed    = raw.gsub(/^\.#{mark} ?/, '')
+      fixed    = raw.gsub(/^\.notes ?/, '')
       markdown = Tilt[:markdown].new { fixed }.render
-
       container.name       = 'div'
       container.inner_html = markdown
     end
+    doc.to_html
   end
-  private :update_special_content_mark
-
-  def update_download_links(doc, seq, name)
-    container = doc.css("p.download").first
-    return unless container
-
-    raw      = container.text
-    fixed    = raw.gsub(/^\.download ?/, '')
-
-    # first create the data structure
-    # [ enabled, slide name, [array, of, files] ]
-    @@downloads[seq] = [ false, name, [] ]
-
-    fixed.split("\n").each { |file|
-      # then push each file onto the list
-      @@downloads[seq][2].push(file.strip)
-    }
-
-    container.remove
-  end
-  private :update_download_links
 
   def update_image_paths(path, slide, opts={:static=>false})
     paths = path.split('/')
