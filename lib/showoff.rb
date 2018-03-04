@@ -55,7 +55,7 @@ class ShowOff < Sinatra::Application
 
     @logger.debug settings.pres_dir
     @pres_name = settings.pres_dir.split('/').pop
-    require_ruby_files
+    Dir.glob("#{settings.pres_dir}/*.rb").map { |path| require path }
 
     # Default asset path
     @asset_path = nil
@@ -66,10 +66,6 @@ class ShowOff < Sinatra::Application
   def self.pres_dir_current
     opt = {:pres_dir => Dir.pwd}
     ShowOff.set opt
-  end
-
-  def require_ruby_files
-    Dir.glob("#{settings.pres_dir}/*.rb").map { |path| require path }
   end
 
   def load_section_files(section)
@@ -89,10 +85,6 @@ class ShowOff < Sinatra::Application
 
   def js_files
     Dir.glob("#{settings.pres_dir}/*.js").map { |path| File.basename(path) }
-  end
-
-  def preshow_files
-    Dir.glob("#{settings.pres_dir}/_preshow/*").map { |path| File.basename(path) }.to_json
   end
 
   class Slide

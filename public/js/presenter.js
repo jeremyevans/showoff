@@ -223,10 +223,6 @@ function keyDown(event)
 		removeResults();
 		try { slaveWindow.removeResults(); } catch (e) {}
 	}
-	else if (key == 80) // 'p' for preshow
-	{
-		try { slaveWindow.togglePreShow(); } catch (e) {}
-	}
 	return true
 }
 

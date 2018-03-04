@@ -207,7 +207,6 @@ img#disconnected {
   display: none;
 }
 
-#preshow { display: none; }
 /* define the screen blocking view */
 /* we define it as invisible because we use jQuery to animate its presentation */
 #screenblanker {
@@ -332,7 +331,7 @@ a.fg-button { float:left; }
   cursor: pointer;
 }
 
-#tips, #preshow_timer {
+#tips {
   display:inline;
   background-color:#000;
   color:#fff;
@@ -342,16 +341,9 @@ a.fg-button { float:left; }
   padding:25px;
   margin:0px;
   z-index: 2147483647; /* max, see http://www.puidokas.com/max-z-index/ */
-}
-
-#tips {
   top: 0px;
   right: 0px;
   text-align:right;
-}
-
-#preshow_timer {
-  bottom: 0px;
 }
 
 /**********************************
