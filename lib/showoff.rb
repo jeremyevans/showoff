@@ -127,7 +127,7 @@ class ShowOff < Sinatra::Application
     end
   end
 
-  def process_markdown(name, content, opts={:print=>false, :toc=>false})
+  def process_markdown(name, content, opts={:toc=>false})
     if settings.encoding and content.respond_to?(:force_encoding)
       content.force_encoding(settings.encoding)
     end
@@ -167,14 +167,6 @@ class ShowOff < Sinatra::Application
       unless opts[:toc]
         # just drop the slide if we're not generating a table of contents
         next if slide.classes.include? 'toc'
-      end
-
-      if opts[:print]
-        # drop all slides not intended for the print version
-        next if slide.classes.include? 'noprint'
-      else
-        # drop slides that are intended for the print version only
-        next if slide.classes.include? 'printonly'
       end
 
       @slide_count += 1
@@ -452,11 +444,6 @@ class ShowOff < Sinatra::Application
     erb :onepage
   end
 
-  def print
-    @slides = get_slides_html(:toc=>true, :print=>true)
-    erb :onepage
-  end
-
   def title
     ShowOffUtils.showoff_title(settings.pres_dir)
   end
@@ -567,10 +554,6 @@ class ShowOff < Sinatra::Application
 
   get '/onepage' do
     onepage
-  end
-
-  get '/print' do
-    print
   end
 
   not_found do

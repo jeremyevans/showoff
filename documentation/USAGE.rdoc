@@ -46,11 +46,6 @@ web browser. The following URL paths are available for use by you and your audie
   useful when a viewer has an older browser than cannot handle the transitions properly
   or is a luddite ;-) and wants to scroll rather than page.
 
-[http://localhost:9090/print]
-  This will generate printable version of your presentation, including any slides that
-  were tagged as _printonly_. This view can be printed directly from the browser, or
-  processed with any HTML-to-$thing engine.
-
 == Presenter View Tools
 
 The presenter view is broken into several areas with tools that are mostly self explanatory. Nevertheless, I'll summarize their usage.
