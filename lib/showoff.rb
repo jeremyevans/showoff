@@ -379,7 +379,7 @@ class ShowOff < Sinatra::Application
       # Identify which languages to bundle for highlighting
       @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
 
-      @asset_path = "./"
+      @asset_path = "."
     end
 
     erb :index
@@ -392,7 +392,7 @@ class ShowOff < Sinatra::Application
       # Identify which languages to bundle for highlighting
       @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
 
-      @asset_path = "./"
+      @asset_path = "."
     end
 
     erb :presenter
