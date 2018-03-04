@@ -434,7 +434,6 @@ class ShowOff < Sinatra::Application
     if static
       @static = true
       @slides = get_slides_html(:static=>static)
-      @pause_msg = ShowOffUtils.pause_msg
 
       # Identify which languages to bundle for highlighting
       @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
@@ -448,7 +447,6 @@ class ShowOff < Sinatra::Application
   def presenter(static=false)
     if static
       @slides = get_slides_html(:static=>static)
-      @pause_msg = ShowOffUtils.pause_msg
 
       # Identify which languages to bundle for highlighting
       @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}

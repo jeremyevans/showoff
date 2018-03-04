@@ -164,10 +164,6 @@ class ShowOffUtils
     get_config_option(dir, 'name', "Presentation")
   end
 
-  def self.pause_msg(dir = '.')
-    get_config_option(dir, 'pause_msg', 'PAUSED')
-  end
-
   def self.default_style(dir = '.')
     get_config_option(dir, 'style', '')
   end
