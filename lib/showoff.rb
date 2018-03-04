@@ -9,11 +9,6 @@ require 'maruku'
 
 require_relative "showoff_utils"
 
-begin
-  require 'pdfkit'
-rescue LoadError
-end
-
 require 'tilt'
 
 class ShowOff < Sinatra::Application
@@ -138,7 +133,7 @@ class ShowOff < Sinatra::Application
       end
     end
 
-    def process_markdown(name, content, opts={:static=>false, :pdf=>false, :print=>false, :toc=>false, :supplemental=>nil})
+    def process_markdown(name, content, opts={:static=>false, :print=>false, :toc=>false, :supplemental=>nil})
       if settings.encoding and content.respond_to?(:force_encoding)
         content.force_encoding(settings.encoding)
       end
@@ -394,13 +389,11 @@ class ShowOff < Sinatra::Application
     end
     private :update_download_links
 
-    def update_image_paths(path, slide, opts={:static=>false, :pdf=>false})
+    def update_image_paths(path, slide, opts={:static=>false})
       paths = path.split('/')
       paths.pop
       path = paths.join('/')
-      replacement_prefix = opts[:static] ?
-        ( opts[:pdf] ? %(img src="file://#{settings.pres_dir}/#{path}) : %(img src="./file/#{path}) ) :
-        %(img src="#{@asset_path}image/#{path})
+      replacement_prefix = opts[:static] ?  %(img src="./file/#{path}) : %(img src="#{@asset_path}image/#{path})
       slide.gsub(/img src=[\"\'](?!https?:\/\/)([^\/].*?)[\"\']/) do |s|
         img_path = File.join(path, $1)
         %(#{replacement_prefix}/#{$1}")
@@ -425,7 +418,7 @@ class ShowOff < Sinatra::Application
       html.root.to_s
     end
 
-    def get_slides_html(opts={:static=>false, :pdf=>false, :toc=>false, :supplemental=>nil})
+    def get_slides_html(opts={:static=>false, :toc=>false, :supplemental=>nil})
       @slide_count   = 0
       @section_major = 0
       @section_minor = 0
@@ -595,33 +588,6 @@ class ShowOff < Sinatra::Application
       @downloads.merge! @@downloads
       erb :download
     end
-
-    def pdf(static=true)
-      @slides = get_slides_html(:static=>static, :pdf=>true)
-      @inline = true
-
-      # Identify which languages to bundle for highlighting
-      @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "/sh_lang/#{w[0]}.min.js"}
-
-      html = erb :onepage
-      # TODO make a random filename
-
-      # Process inline css and js for included images
-      # The css uses relative paths for images and we prepend the file url
-      html.gsub!(/url\([\"\']?(?!https?:\/\/)(.*?)[\"\']?\)/) do |s|
-        "url(file://#{settings.pres_dir}/#{$1})"
-      end
-
-      # Todo fix javascript path
-
-      # PDFKit.new takes the HTML and any options for wkhtmltopdf
-      # run `wkhtmltopdf --extended-help` for a full list of options
-      kit = PDFKit.new(html, ShowOffUtils.showoff_pdf_options(settings.pres_dir))
-
-      # Save the PDF to a file
-      file = kit.to_file('/tmp/preso.pdf')
-    end
-
   end
 
 
@@ -638,66 +604,62 @@ class ShowOff < Sinatra::Application
 
       data = showoff.send(what, true)
 
-      if data.is_a?(File)
-        FileUtils.cp(data.path, "#{name}.pdf")
-      else
-        out = File.expand_path("#{path}/static")
-        # First make a directory
-        FileUtils.makedirs(out)
-        # Then write the html
-        file = File.new("#{out}/index.html", "w")
+      out = File.expand_path("#{path}/static")
+      # First make a directory
+      FileUtils.makedirs(out)
+      # Then write the html
+      file = File.new("#{out}/index.html", "w")
+      file.puts(data)
+      file.close
+      if what == 'index'
+        data = showoff.presenter(true)
+        file = File.new("#{out}/presenter.html", "w")
         file.puts(data)
         file.close
-        if what == 'index'
-          data = showoff.presenter(true)
-          file = File.new("#{out}/presenter.html", "w")
-          file.puts(data)
-          file.close
+      end
+      # Now copy all the js and css
+      my_path = File.join( File.dirname(__FILE__), '..', 'public')
+      ["js", "css"].each { |dir|
+        FileUtils.copy_entry("#{my_path}/#{dir}", "#{out}/#{dir}")
+      }
+      # And copy the directory
+      Dir.glob("#{my_path}/#{name}/*").each { |subpath|
+        base = File.basename(subpath)
+        next if "static" == base
+        next unless File.directory?(subpath) || base.match(/\.(css|js)$/)
+        FileUtils.copy_entry(subpath, "#{out}/#{base}")
+      }
+
+      # Set up file dir
+      file_dir = File.join(out, 'file')
+      FileUtils.makedirs(file_dir)
+      pres_dir = showoff.settings.pres_dir
+
+      # ..., copy all user-defined styles, javascript, images, and fonts
+      Dir.glob("#{pres_dir}/*.{css,js,png,jpg,svg,gif,ttf}").each { |path|
+        FileUtils.copy(path, File.join(file_dir, File.basename(path)))
+      }
+
+      # ... and copy all needed image files
+      [/img src=[\"\'].\/file\/(.*?)[\"\']/, /style=[\"\']background: url\(\'file\/(.*?)'/].each do |regex|
+        data.scan(regex).flatten.each do |path|
+          path = path.gsub('../file/', '')
+          dir = File.dirname(path)
+          FileUtils.makedirs(File.join(file_dir, dir))
+          FileUtils.copy(File.join(pres_dir, path), File.join(file_dir, path))
         end
-        # Now copy all the js and css
-        my_path = File.join( File.dirname(__FILE__), '..', 'public')
-        ["js", "css"].each { |dir|
-          FileUtils.copy_entry("#{my_path}/#{dir}", "#{out}/#{dir}")
-        }
-        # And copy the directory
-        Dir.glob("#{my_path}/#{name}/*").each { |subpath|
-          base = File.basename(subpath)
-          next if "static" == base
-          next unless File.directory?(subpath) || base.match(/\.(css|js)$/)
-          FileUtils.copy_entry(subpath, "#{out}/#{base}")
-        }
-
-        # Set up file dir
-        file_dir = File.join(out, 'file')
-        FileUtils.makedirs(file_dir)
-        pres_dir = showoff.settings.pres_dir
-
-        # ..., copy all user-defined styles, javascript, images, and fonts
-        Dir.glob("#{pres_dir}/*.{css,js,png,jpg,svg,gif,ttf}").each { |path|
-          FileUtils.copy(path, File.join(file_dir, File.basename(path)))
-        }
-
-        # ... and copy all needed image files
-        [/img src=[\"\'].\/file\/(.*?)[\"\']/, /style=[\"\']background: url\(\'file\/(.*?)'/].each do |regex|
-          data.scan(regex).flatten.each do |path|
-            path = path.gsub('../file/', '')
+      end
+      # copy images from css too
+      Dir.glob("#{pres_dir}/*.css").each do |css_path|
+        File.open(css_path) do |file|
+          data = file.read
+          data.scan(/url\([\"\']?(?!https?:\/\/)(.*?)[\"\']?\)/).flatten.each do |path|
+            path.gsub!(/(\#.*)$/, '') # get rid of the anchor
+            path.gsub!(/(\?.*)$/, '') # get rid of the query
+            logger.debug path
             dir = File.dirname(path)
             FileUtils.makedirs(File.join(file_dir, dir))
             FileUtils.copy(File.join(pres_dir, path), File.join(file_dir, path))
-          end
-        end
-        # copy images from css too
-        Dir.glob("#{pres_dir}/*.css").each do |css_path|
-          File.open(css_path) do |file|
-            data = file.read
-            data.scan(/url\([\"\']?(?!https?:\/\/)(.*?)[\"\']?\)/).flatten.each do |path|
-              path.gsub!(/(\#.*)$/, '') # get rid of the anchor
-              path.gsub!(/(\?.*)$/, '') # get rid of the query
-              logger.debug path
-              dir = File.dirname(path)
-              FileUtils.makedirs(File.join(file_dir, dir))
-              FileUtils.copy(File.join(pres_dir, path), File.join(file_dir, path))
-            end
           end
         end
       end
