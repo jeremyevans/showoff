@@ -51,17 +51,6 @@ web browser. The following URL paths are available for use by you and your audie
   were tagged as _printonly_. This view can be printed directly from the browser, or
   processed with any HTML-to-$thing engine.
 
-[http://localhost:9090/download]
-  Your slides can include files for viewers to download and these files will be listed
-  on this page as the presenter pages past the slide containing the download definition.
-
-[http://localhost:9090/stats]
-  The showoff server keeps track of which slides your audience is viewing and how much
-  time they are spending on them. Time is only accumulated for slides that are not the
-  slide currently being displayed. These stats are available for consumption on this
-  page. If the presenter views the page, a full listing of which pages and which hosts
-  are viewing them is shown. If an audience member views the page, only a summary is listed.
-
 [http://localhost:9090/supplemental/$type-name]
   Showoff has the ability to include supplemental material that are defined by special
   slide types. This URL path will allow you and/or the audience to retrieve the

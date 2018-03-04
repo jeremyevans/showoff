@@ -523,21 +523,7 @@ class ShowOff < Sinatra::Application
       @wrapper_classes = ['supplemental']
       erb :onepage
     end
-
-    def download()
-      begin
-        shared = Dir.glob("#{settings.pres_dir}/_files/share/*").map { |path| File.basename(path) }
-        # We use the icky -999 magic index because it has to be comparable for the view sort
-        @downloads = { -999 => [ true, 'Shared Files', shared ] }
-      rescue Errno::ENOENT => e
-        # don't fail if the directory doesn't exist
-        @downloads = {}
-      end
-      @downloads.merge! @@downloads
-      erb :download
-    end
   end
-
 
    def self.do_static(what)
       what = "index" if !what
