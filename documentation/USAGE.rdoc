@@ -75,9 +75,6 @@ tools that you should be familiar with.
   Opens a new slave window or attempts to reconnect to an existing window. Useful
   when a popup blocker interferes.
 
-[Generate PDF]
-  A link to the <tt>PDFKit</tt> generated PDF file.
-
 [Single Page]
   Loads up all slides as a single monolithic page. Useful for printing or when an
   ancient browser is used.
