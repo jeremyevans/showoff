@@ -454,7 +454,7 @@ class ShowOff < Roda
     r.get do
       r.public
 
-      r.is 'file', String do |path|
+      r.is /file(?:\/slides)?\/(.+)/ do |path|
         pres_dir = PRESENTATION_DIR
         full_path = File.expand_path(File.join(pres_dir, path))
         unless full_path.start_with?(File.expand_path(pres_dir)) && File.exist?(full_path)
