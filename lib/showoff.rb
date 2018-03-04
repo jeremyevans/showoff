@@ -10,9 +10,6 @@ require_relative "showoff_utils"
 require 'tilt'
 
 class ShowOff < Sinatra::Application
-
-  # Set up application variables
-
   set :views, File.dirname(__FILE__) + '/../views'
   set :public_folder, File.dirname(__FILE__) + '/../public'
 
@@ -23,9 +20,6 @@ class ShowOff < Sinatra::Application
   set :pres_template, nil
   set :showoff_config, {}
   set :encoding, nil
-
-  @@downloads = Hash.new # Track downloadable files
-  @@current   = Hash.new # The current slide that the presenter is viewing
 
   def initialize(app=nil)
     super(app)
