@@ -313,7 +313,7 @@ class ShowOff < Sinatra::Application
     html.root.to_s
   end
 
-  def get_slides_html(opts={:toc=>false, :supplemental=>nil})
+  def get_slides_html(opts={:toc=>false})
     @slide_count   = 0
     @section_major = 0
     @section_minor = 0
