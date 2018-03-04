@@ -7,8 +7,7 @@ require 'logger'
 require 'htmlentities'
 require 'maruku'
 
-here = File.expand_path(File.dirname(__FILE__))
-require "#{here}/showoff_utils"
+require_relative "showoff_utils"
 
 begin
   require 'pdfkit'
