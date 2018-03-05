@@ -147,9 +147,7 @@ class ShowOff < Roda
       # Apply the template to the slide and replace the key to generate the content of the slide
       sl = template.gsub(/~~~CONTENT~~~/, slide.text)
       sl = Tilt[:markdown].new(nil, nil, {}) { sl }.render
-      sl = update_p_classes(sl)
-      sl = update_notes(sl)
-      sl = update_image_paths(sl)
+      sl = update_content(sl)
 
       content += sl
       content += "</div>\n"
@@ -192,11 +190,7 @@ class ShowOff < Roda
     content
   end
 
-  def update_p_classes(markdown)
-    markdown.gsub(/<p>\.(.*?) /, '<p class="\1">')
-  end
-
-  def update_notes(content)
+  def update_content(content)
     doc = Nokogiri::HTML::DocumentFragment.parse(content)
     if container = doc.css("p.notes").first
       raw      = container.inner_html
@@ -205,19 +199,12 @@ class ShowOff < Roda
       container.name       = 'div'
       container.inner_html = markdown
     end
-    doc.to_html
-  end
-
-  def update_image_paths(slide)
-    return slide unless slide =~ /<img/
-
-    doc = Nokogiri::HTML::DocumentFragment.parse(slide)
     doc.css("img").each do |img|
       next unless src = img['src']
       next if src =~ /\Ahttps?:\/\//
       img['src'] = "/file/#{src}"
     end
-    doc.to_html
+    doc.to_html.gsub(/<p>\.(.*?) /, '<p class="\1">')
   end
 
   def update_commandline_code(slide)
