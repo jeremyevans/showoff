@@ -4,7 +4,7 @@ Gem::Specification.new do |s|
   s.summary           = "The best damn presentation software a developer could ever love."
   s.homepage          = "https://github.com/jeremyevans/showoff"
   s.email             = "code@jeremyevans.net"
-  s.authors           = ["Scott Chacon"]
+  s.authors           = ["Scott Chacon", "Jeremy Evans"]
   s.has_rdoc          = false
   s.require_path      = "lib"
   s.executables       = %w( showoff )
