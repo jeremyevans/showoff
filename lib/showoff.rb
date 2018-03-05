@@ -191,7 +191,7 @@ class ShowOff < Roda
   end
 
   def update_content(content)
-    doc = Nokogiri::HTML::DocumentFragment.parse(content)
+    doc = Nokogiri::HTML::DocumentFragment.parse(content.gsub(/<p>\.(.*?) /, '<p class="\1">'))
     if container = doc.css("p.notes").first
       raw      = container.inner_html
       fixed    = raw.gsub(/^\.notes ?/, '')
@@ -204,7 +204,7 @@ class ShowOff < Roda
       next if src =~ /\Ahttps?:\/\//
       img['src'] = "/file/#{src}"
     end
-    doc.to_html.gsub(/<p>\.(.*?) /, '<p class="\1">')
+    doc.to_html
   end
 
   def update_commandline_code(slide)
