@@ -149,7 +149,7 @@ class ShowOff < Roda
       sl = Tilt[:markdown].new(nil, nil, {}) { sl }.render
       sl = update_p_classes(sl)
       sl = update_notes(sl)
-      sl = update_image_paths(name, sl)
+      sl = update_image_paths(sl)
 
       content += sl
       content += "</div>\n"
@@ -208,15 +208,16 @@ class ShowOff < Roda
     doc.to_html
   end
 
-  def update_image_paths(path, slide)
-    paths = path.split('/')
-    paths.pop
-    path = paths.join('/')
-    replacement_prefix = %(img src="./file/#{path})
-    slide.gsub(/img src=[\"\'](?!https?:\/\/)([^\/].*?)[\"\']/) do |s|
-      img_path = File.join(path, $1)
-      %(#{replacement_prefix}/#{$1}")
+  def update_image_paths(slide)
+    return slide unless slide =~ /<img/
+
+    doc = Nokogiri::HTML::DocumentFragment.parse(slide)
+    doc.css("img").each do |img|
+      next unless src = img['src']
+      next if src =~ /\Ahttps?:\/\//
+      img['src'] = "/file/#{src}"
     end
+    doc.to_html
   end
 
   def update_commandline_code(slide)
@@ -454,7 +455,7 @@ class ShowOff < Roda
     r.get do
       r.public
 
-      r.is /file(?:\/slides)?\/(.+)/ do |path|
+      r.is /file\/(.+)/ do |path|
         pres_dir = PRESENTATION_DIR
         full_path = File.expand_path(File.join(pres_dir, path))
         unless full_path.start_with?(File.expand_path(pres_dir)) && File.exist?(full_path)
