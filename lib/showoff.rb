@@ -202,7 +202,7 @@ class ShowOff < Roda
     doc.css("img").each do |img|
       next unless src = img['src']
       next if src =~ /\Ahttps?:\/\//
-      img['src'] = "/file/#{src}"
+      img['src'] = "#{@asset_path}/file/#{src}"
     end
     doc.to_html
   end
@@ -292,9 +292,9 @@ class ShowOff < Roda
   end
 
   def static_settings
+    @asset_path = "."
     @slides = get_slides_html
     @languages = @slides.scan(/<pre class=".*(?!sh_sourceCode)(sh_[\w-]+).*"/).uniq.map{ |w| "sh_lang/#{w[0]}.min.js"}
-    @asset_path = "."
   end
 
   def index(static=false)
