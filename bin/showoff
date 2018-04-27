@@ -3,6 +3,11 @@
 require_relative '../lib/showoff'
 
 case command = ARGV.shift
+when 'adjust'
+  multiplier = ARGV.shift.to_f
+  filename = ARGV.shift
+  ShowOffUtils.adjust(multiplier, filename)
+  puts "px sizes adjusted by #{multiplier} in #{filename}"
 when 'create'
   dirname = ARGV.shift
   ShowOffUtils.create(dirname)

@@ -26,6 +26,14 @@ class ShowOffUtils
     'showoff.json'
   end
 
+  def self.adjust(multiplier, filename)
+    text = File.binread(filename)
+    new = text.gsub(/\d+\s*px/){|i| "#{(i.to_i * multiplier).round}px" }
+    unless new == text
+      File.binwrite(filename, new)
+    end
+  end
+
   def self.create(dirname,create_samples=false,dir='one')
     Dir.mkdir(dirname) if !File.exists?(dirname)
     Dir.chdir(dirname) do
