@@ -5,7 +5,6 @@ Gem::Specification.new do |s|
   s.homepage          = "https://github.com/jeremyevans/showoff"
   s.email             = "code@jeremyevans.net"
   s.authors           = ["Scott Chacon", "Jeremy Evans"]
-  s.has_rdoc          = false
   s.require_path      = "lib"
   s.executables       = %w( showoff )
   s.licenses          = %w'MIT'
