@@ -22,5 +22,5 @@ when 'serve'
 when 'static'
   ShowOff.do_static(nil)
 else
-  puts "usage: showoff (create $dirname|serve $host $port|static)"
+  puts "usage: showoff (create $dirname|serve $host $port|static|adjust $multiplier $filename)"
 end
