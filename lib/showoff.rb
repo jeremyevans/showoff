@@ -168,16 +168,16 @@ class ShowOff < Roda
     # Should we build a table of contents?
     if opts[:toc]
       frag = Nokogiri::HTML::DocumentFragment.parse ""
-      toc = Nokogiri::XML::Node.new('div', frag)
+      toc = Nokogiri::HTML::Node.new('div', frag)
       toc['id'] = 'toc'
       frag.add_child(toc)
 
       Nokogiri::HTML(content).css('div.subsection > h1').each do |section|
-        entry = Nokogiri::XML::Node.new('div', frag)
+        entry = Nokogiri::HTML::Node.new('div', frag)
         entry['class'] = 'tocentry'
         toc.add_child(entry)
 
-        link = Nokogiri::XML::Node.new('a', frag)
+        link = Nokogiri::HTML::Node.new('a', frag)
         link['href'] = "##{section.parent.parent['id']}"
         link.content = section.content
         entry.add_child(link)
@@ -208,7 +208,7 @@ class ShowOff < Roda
   end
 
   def update_commandline_code(slide)
-    html = Nokogiri::XML.parse(slide)
+    html = Nokogiri::HTML.parse(slide)
 
     html.css('pre').each do |pre|
       pre.css('code').each do |code|
@@ -325,7 +325,7 @@ class ShowOff < Roda
     assets = ["index", "slides"]
 
     index = erb :index
-    html = Nokogiri::XML.parse(index)
+    html = Nokogiri::HTML.parse(index)
     html.css('head link').each do |link|
       href = clean_link(link['href'])
       assets << href if href
@@ -336,7 +336,7 @@ class ShowOff < Roda
     end
 
     slides = get_slides_html
-    html = Nokogiri::XML.parse("<slides>" + slides + "</slides>")
+    html = Nokogiri::HTML.parse("<slides>" + slides + "</slides>")
     html.css('img').each do |link|
       href = clean_link(link['src'])
       assets << href if href
