@@ -25,8 +25,6 @@ class ShowOff < Roda
   ROOT_PATH = '.'.freeze
   SHOWOFF_CONFIG = JSON.parse(File.read(ShowOffUtils.presentation_config_file))
 
-  Dir.glob("#{PRESENTATION_DIR}/*.rb").map { |path| require path }
-
   def load_section_files(section)
     section = File.join(PRESENTATION_DIR, section)
     files = if File.directory? section
