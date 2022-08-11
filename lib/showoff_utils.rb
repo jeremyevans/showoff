@@ -57,6 +57,27 @@ else
 end
 END
 
+      File.write('Rakefile', <<'END')
+desc "Run slideshow server"
+task :default do
+  sh "puma"
+end
+
+desc "Make static slideshow"
+task :static do
+  sh "rm -rf static"
+  sh "showoff static"
+end
+
+desc "Make static slideshow"
+task :tarball => [:static] do
+  key = File.basename(File.dirname(__FILE__))
+  sh "mv static #{key}"
+  sh "tar zcf #{key}.tar.gz #{key}"
+  sh "rm -r #{key}"
+end
+END
+
       # create showoff.json
       File.open(ShowOffUtils.presentation_config_file, 'w+') do |f|
         f.puts "{ \"name\": \"My Preso\", \"sections\": [ {\"section\":\"#{dir}\"} ]}"
