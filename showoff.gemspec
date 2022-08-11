@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.files            += Dir.glob("bin/**/*")
   s.files            += Dir.glob("views/**/*")
   s.files            += Dir.glob("public/**/*")
-  s.add_dependency      "roda", ">= 3"
+  s.add_dependency      "roda", ">= 3.13"
   s.add_dependency      "tilt", ">= 2"
   s.add_dependency      "json"
   s.add_dependency      "maruku"

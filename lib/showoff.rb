@@ -11,11 +11,10 @@ Tilt.prefer Tilt::MarukuTemplate, "markdown"
 require_relative "showoff_utils"
 
 class ShowOff < Roda
-  use Rack::CommonLogger
-
   plugin :render, :views=>(File.dirname(__FILE__) + '/../views')
   plugin :public, :root=>(File.dirname(__FILE__) + '/../public')
   plugin :sinatra_helpers
+  plugin :common_logger
 
   LOGGER = Logger.new(STDOUT)
   LOGGER.formatter = proc { |severity,datetime,progname,msg| "#{progname} #{msg}\n" }
