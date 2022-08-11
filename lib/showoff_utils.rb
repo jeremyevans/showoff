@@ -42,11 +42,20 @@ class ShowOffUtils
         Dir.mkdir(dir)
 
         # create markdown file
-        File.open("#{dir}/01_slide.md", 'w+') do |f|
+        File.open("#{dir}/slides.md", 'w+') do |f|
           f.puts make_slide("My Presentation")
           f.puts make_slide("Bullet Points","bullets incremental",["first point","second point","third point"])
         end
       end
+
+      File.write('config.ru', <<END)
+if File.directory?('static')
+  run Rack::File.new('static')
+else
+  require 'showoff'
+  run ShowOff.app
+end
+END
 
       # create showoff.json
       File.open(ShowOffUtils.presentation_config_file, 'w+') do |f|

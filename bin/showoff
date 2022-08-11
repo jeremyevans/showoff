@@ -12,13 +12,6 @@ when 'create'
   dirname = ARGV.shift
   ShowOffUtils.create(dirname)
   puts "done. add slides, modify #{ShowOffUtils.presentation_config_file} and then run 'showoff serve' in #{dirname}/ dir to see slideshow"
-when 'serve'
-  host = ARGV.shift || '127.0.0.1'
-  port = (ARGV.shift || 9090).to_i
-  url  = "http://#{host}:#{port}"
-  puts "View URL: #{url}"
-  puts "Presenter URL: #{url}/presenter"
-  Rack::Server.start(:app=>ShowOff.app, :Host => host, :Port => port)
 when 'static'
   ShowOff.do_static(nil)
 else
