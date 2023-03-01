@@ -190,11 +190,11 @@ class ShowOff < Roda
   def update_content(content)
     doc = Nokogiri::HTML::DocumentFragment.parse(content.gsub(/<p>\.(.*?) /, '<p class="\1">'))
     if container = doc.css("p.notes").first
-      raw      = container.inner_html
-      fixed    = raw.gsub(/^\.notes ?/, '')
-      markdown = Tilt[:markdown].new { fixed }.render
+      node = if (node = container.css("code")) && node.length == 1
+        node.first
+      end
       container.name       = 'div'
-      container.inner_html = markdown
+      container.inner_html = (node || container).inner_html.gsub(/^\.notes ?/, '')
     end
     doc.css("img").each do |img|
       next unless src = img['src']
