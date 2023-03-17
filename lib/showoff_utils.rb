@@ -35,7 +35,7 @@ class ShowOffUtils
   end
 
   def self.create(dirname,create_samples=false,dir='one')
-    Dir.mkdir(dirname) if !File.exists?(dirname)
+    Dir.mkdir(dirname) unless File.exist?(dirname)
     Dir.chdir(dirname) do
       if create_samples
         # create section
@@ -173,7 +173,7 @@ END
   def self.showoff_sections(dir,logger)
     index = File.join(dir, ShowOffUtils.presentation_config_file)
     sections = nil
-    if File.exists?(index)
+    if File.exist?(index)
       data = JSON.parse(File.read(index))
       logger.debug data
       if data.is_a?(Hash)
@@ -209,7 +209,7 @@ END
 
   def self.get_config_option(dir, option, default = nil)
     index = File.join(dir, ShowOffUtils.presentation_config_file)
-    if File.exists?(index)
+    if File.exist?(index)
       data = JSON.parse(File.read(index))
       if data.is_a?(Hash)
         if default.is_a?(Hash)
