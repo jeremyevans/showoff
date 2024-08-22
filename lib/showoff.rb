@@ -3,10 +3,11 @@ require 'json'
 require 'nokogiri'
 require 'fileutils'
 require 'logger'
-require 'maruku'
 require 'tilt'
 
-Tilt.prefer Tilt::MarukuTemplate, "markdown"
+require 'tilt/kramdown'
+require 'tilt/erubi'
+Tilt.finalize!
 
 require_relative "showoff_utils"
 
@@ -143,6 +144,8 @@ class ShowOff < Roda
 
       # Apply the template to the slide and replace the key to generate the content of the slide
       sl = template.gsub(/~~~CONTENT~~~/, slide.text)
+      # Treat | in notes as new paragraph (needed when using Kramdown, which treats | as table
+      true while sl.gsub!(/\A(\.notes.*[. ])\|/, "\\1\\\\|")
       sl = Tilt[:markdown].new(nil, nil, {}) { sl }.render
       sl = update_content(sl)
 

@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name              = "jeremyevans-showoff"
-  s.version           = '1.0.5'
+  s.version           = '1.0.6'
   s.summary           = "The best damn presentation software a developer could ever love."
   s.homepage          = "https://github.com/jeremyevans/showoff"
   s.email             = "code@jeremyevans.net"
@@ -14,10 +14,11 @@ Gem::Specification.new do |s|
   s.files            += Dir.glob("views/**/*")
   s.files            += Dir.glob("public/**/*")
   s.add_dependency      "roda", ">= 3.13"
-  s.add_dependency      "tilt", ">= 2"
+  s.add_dependency      "tilt", ">= 2.2"
   s.add_dependency      "json"
-  s.add_dependency      "maruku"
+  s.add_dependency      "kramdown"
   s.add_dependency      "nokogiri"
+  s.add_dependency      "erubi"
 
   s.description       = <<-desc
 My fork of showoff with a lot of features removed.
