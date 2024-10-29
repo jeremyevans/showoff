@@ -7,15 +7,16 @@
   .slide {
       margin: 10px;
       padding: 0;
-      width: 1020px;
-      height: 740px;
-      max-height: 740px !important;
+      width: 1920px;
+      height: 1080px;
+      max-height: 1080px !important;
       margin-left:auto; 
       margin-right:auto;
       overflow:hidden;
       position: relative;
       border: 1px solid #333;
-      page-break-after: always
+      page-break-after: always;
+      zoom: 50%;
   }
 }
 
@@ -24,12 +25,13 @@
   .slide, .preso {
       margin: 10px;
       padding: 0;
-      width: 800px;
-      height: 600px;
+      width: 1920px;
+      height: 1080px;
       overflow:hidden;
       border: none;
       position: relative;
-      page-break-after: always
+      page-break-after: always;
+      zoom: 50%;
   }
 }
 

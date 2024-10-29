@@ -357,7 +357,7 @@ class ShowOff < Roda
   end
 
   def onepage
-    @slides = get_slides_html(:toc=>true)
+    @slides = get_slides_html(:toc=>false)
     render :onepage
   end
 
