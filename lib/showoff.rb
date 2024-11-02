@@ -60,14 +60,14 @@ class ShowOff < Roda
         @classes += $3.strip.chomp('>').split if $3
       end
 
-      @text = ""
+      @text = String.new
     end
     def <<(s)
       @text << s
       @text << "\n"
     end
     def empty?
-      @text.strip == "" || @classes == ['skip']
+      @text.strip.empty? || @classes == ['skip']
     end
   end
 
@@ -93,7 +93,7 @@ class ShowOff < Roda
 
     slides.delete_if {|slide| slide.empty? }
 
-    final = ''
+    final = String.new
     if slides.size > 1
       seq = 1
     end
@@ -129,17 +129,18 @@ class ShowOff < Roda
 
       # create html for the slide
       classes = content_classes.join(' ')
-      content = "<div"
-      content += " id=\"#{id}\"" if id
-      content += " style=\"background: url('file/#{slide.bg}') center no-repeat;\"" if slide.bg
-      content += " class=\"slide #{classes}\" data-transition=\"#{transition}\">"
+      content = String.new
+      content << "<div"
+      content << " id=\"#{id}\"" if id
+      content << " style=\"background: url('file/#{slide.bg}') center no-repeat;\"" if slide.bg
+      content << " class=\"slide #{classes}\" data-transition=\"#{transition}\">"
 
       # name the slide. If we've got multiple slides in this file, we'll have a sequence number
       # include that sequence number to index directly into that content
       if seq
-        content += "<div class=\"content #{classes}\" ref=\"#{name}/#{seq.to_s}\">\n"
+        content << "<div class=\"content #{classes}\" ref=\"#{name}/#{seq.to_s}\">\n"
       else
-        content += "<div class=\"content #{classes}\" ref=\"#{name}\">\n"
+        content << "<div class=\"content #{classes}\" ref=\"#{name}\">\n"
       end
 
       # Apply the template to the slide and replace the key to generate the content of the slide
@@ -149,11 +150,10 @@ class ShowOff < Roda
       sl = Tilt[:markdown].new(nil, nil, {}) { sl }.render
       sl = update_content(sl)
 
-      content += sl
-      content += "</div>\n"
-      content += "</div>\n"
+      content << sl
+      content << "</div>\n</div>\n"
 
-      final += update_commandline_code(content)
+      final << update_commandline_code(content)
 
       if seq
         seq += 1
