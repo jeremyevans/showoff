@@ -208,21 +208,7 @@ class ShowOff < Roda
   end
 
   def update_commandline_code(slide)
-    html = Nokogiri::HTML.parse(slide)
-
-    html.css('pre').each do |pre|
-      pre.css('code').each do |code|
-        out = code.text
-        lines = out.split("\n")
-        if lines.first.strip[0, 3] == '@@@'
-          lang = lines.shift.gsub('@@@', '').strip
-          pre.set_attribute('class', 'sh_' + lang.downcase) if !lang.empty?
-          code.content = lines.join("\n")
-        end
-      end
-    end
-
-    html.root.to_s
+    Nokogiri::HTML.parse(slide).root.to_s
   end
 
   def get_slides_html(opts={:toc=>false})
